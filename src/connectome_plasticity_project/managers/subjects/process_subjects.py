@@ -30,6 +30,11 @@ class SubjectsManager:
         "טיפוס": "climbing",
         "AMIR MANO": "music",
     }
+    CONDITION_IDENTIFIERS = {
+        "ביקורת": "control",
+        "מקצועי": "professional",
+        "AMIR MANO": "control",
+    }
 
     #: Default destination locations
     DEFAULT_DESTINATION = "processed"
@@ -117,8 +122,17 @@ class SubjectsManager:
                 if ((key in str(notes)) | (key in str(serial))) & pd.notna(
                     scan
                 ):
+                    for raw_label, label in self.CONDITION_IDENTIFIERS.items():
+                        if (raw_label in str(notes)) | (
+                            raw_label in str(serial)
+                        ):
+                            condition = label
+                            break
+                        else:
+                            condition = "learner"
                     transformed_row = transform_row(row, REPLACEMENT_COLUMNS)
                     transformed_row["group"] = value
+                    transformed_row["condition"] = condition
                     relevant_subjects = relevant_subjects.append(
                         transformed_row
                     )
