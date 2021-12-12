@@ -72,3 +72,9 @@ docs/_build
 
 # Mypy Cache
 .mypy_cache/
+
+# Notebooks
+*.ipynb
+
+# Sensitive data
+data/*
