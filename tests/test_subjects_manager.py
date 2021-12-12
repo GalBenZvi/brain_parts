@@ -1,6 +1,6 @@
 from click.testing import CliRunner
 
-from connectome_plasticity_project.managers.query_subjects import main
+from connectome_plasticity_project.managers.subjects.query_subjects import main
 
 
 def test_main():
