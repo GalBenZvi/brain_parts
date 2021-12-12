@@ -168,6 +168,19 @@ class SubjectsManager:
         return combined_df, missing_df
 
     def query_subjects(self, return_data: bool = False):
+        """
+        A method to query both main tables (MRI table and database's IDs)
+
+        Parameters
+        ----------
+        return_data : bool, optional
+            Whether to return valid and missing dataframes or not, by default False
+
+        Returns
+        -------
+        pd.DataFrame
+            Dataframes with valid and missing participants.
+        """
         relevant_subjects = self.query_mri_table()
         valid, missing = self.query_database_ids(relevant_subjects)
         msg = SUMMARY_MESSAGE.format(
