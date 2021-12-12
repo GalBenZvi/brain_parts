@@ -8,15 +8,13 @@ from dwiprep.workflows.dmri.base import init_dwi_preproc_wf
 from niworkflows.utils.spaces import Reference
 from niworkflows.utils.spaces import SpatialReferences
 
-# bids.config.set_option("extension_initial_dot", True)
-bids_dir = "/media/groot/Yalla/dvir/BIDS_dataset"
-out_dir = "/media/groot/Yalla/dvir/derivatives"
-the_base_identifiers = dict(
-    dwi_identifier={"direction": "FWD"},
-    fmap_identifier={"direction": "REV", "suffix": "epi"},
-    t1w_identifier={},
-    t2w_identifier={},
+from connectome_plasticity_project.utils.preprocessing import FREESURFER_DIR
+from connectome_plasticity_project.utils.preprocessing import SMRIPREP_KWARGS
+from connectome_plasticity_project.utils.preprocessing import (
+    THE_BASE_IDENTIFIERS,
 )
+
+# bids.config.set_option("extension_initial_dot", True)
 
 
 class DmriManager:
@@ -63,7 +61,24 @@ class DmriManager:
             return True
         return False
 
-    # def process_participant(self,participant_id:str):
+    def process_participant(self, participant_id: str):
+        """
+        Runs *participant_id* through *dmriprep* pipeline.
+
+        Parameters
+        ----------
+        participant_id : str
+            Participant's identifier
+        """
+        dmriprep = DmriPrepManager(
+            self.bids_dir,
+            self.destination,
+            participant_label=participant_id,
+            smriprep_kwargs=SMRIPREP_KWARGS,
+            fs_subjects_dir=FREESURFER_DIR,
+            **THE_BASE_IDENTIFIERS,
+        )
+        dmriprep.run()
 
 
 # bids_query = BidsQuery(

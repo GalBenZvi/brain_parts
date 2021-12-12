@@ -1,6 +1,6 @@
 from niworkflows.utils.spaces import Reference
 from niworkflows.utils.spaces import SpatialReferences
-
+FREESURFER_DIR = "/media/groot/Yalla/media/MRI/derivatives/freesurfer"
 THE_BASE_IDENTIFIERS = dict(
     dwi_identifier={"direction": "FWD"},
     fmap_identifier={"direction": "REV", "suffix": "epi"},
