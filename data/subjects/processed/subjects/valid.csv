@@ -1,0 +1,82 @@
+,id,questionnaire_id,height,weight,gender,group,ID,First Name,Last Name,Sex,Date Of Birth,Dominant Hand
+0,305470767,0333,161.0,62.0,female,climbing,6.0,May,Goldstein,F,1991-05-17,R
+1,302752480,0334,177.0,63.0,male,climbing,7.0,Amir,Vizel,M,1989-02-08,R
+2,312434798,0335,180.0,65.0,male,climbing,291.0,Dan,Konstantinovsky,M,1994-01-31,R
+3,313352676,0336,170.0,65.0,female,climbing,92.0,Tal,Yam,F,1995-07-05,L
+4,034601658,0337,164.0,56.0,female,climbing,119.0,Ayala,Giguzinsky,F,1985-09-10,R
+5,201544046,0338,171.0,72.0,female,climbing,207.0,Dana,Gat,F,1990-04-20,R
+6,302471099,0339,167.0,52.0,female,climbing,90.0,Yarden,Meerovitch,F,1989-05-09,R
+7,304141732,0340,171.0,66.0,male,climbing,87.0,Daniel,Sorkin,M,1988-06-19,R
+8,302769617,0341,186.0,82.0,male,climbing,199.0,Tom,Kotler,M,1990-01-13,R
+9,200945095,0347,182.0,72.0,male,climbing,93.0,Eyal,Amuday,M,1989-05-02,R
+10,300042959,0343,162.0,59.0,female,climbing,208.0,Oshri,Ziv-Li,F,1986-10-09,R
+11,037237674,0345,178.0,80.0,male,bjj,130.0,Geffen,Tzur,M,1979-10-19,L
+12,039340062,0346,152.0,47.0,female,bjj,197.0,Efrat,Saad,F,1984-03-23,R
+13,033909482,0348,173.0,70.0,male,bjj,114.0,Ornan,Braier,M,1977-02-27,R
+14,304063852,0351,168.0,58.0,male,bjj,153.0,Daniel,Tselnicker,M,1985-12-25,R
+15,307490250,0350,188.0,84.0,male,bjj,198.0,Lerner,Anton,M,1988-07-24,R
+16,060515772,0364,176.0,72.0,male,bjj,200.0,Ben,Maoz,M,1982-06-24,R
+17,318604352,0414,168.0,52.0,female,bjj,41.0,Jazz,Lubliner,F,1997-11-20,R
+18,208550004,0434,180.0,79.0,male,bjj,86.0,Asaf,Lavi,M,1997-04-16,R
+19,208415604,0427,177.0,69.0,male,bjj,116.0,Amit,Klein,M,1997-05-05,R
+20,315508754,0428,163.0,48.0,female,bjj,118.0,Simona,Philipovich,F,1996-06-04,R
+21,062861836,0421,175.0,83.0,male,bjj,120.0,Sahar,Meir,M,1982-07-09,
+22,315732941,0319,182.0,75.0,female,bjj,94.0,Yael,Yogev,F,1996-08-31,R
+23,308542117,0404,165.0,50.0,female,bjj,91.0,Danielle Mali,Haltovsky,F,1993-01-07,R
+24,038824827,0408,167.0,56.0,male,bjj,37.0,Elhanan,Lehmann,M,1983-04-20,L
+25,207001397,0403,153.0,46.0,female,bjj,78.0,Lior,Cohen,F,1999-11-08,R
+26,203292867,0406,170.0,63.0,female,bjj,85.0,Lior,Gazit,F,1991-03-25,R
+27,038120101,0376,175.0,70.0,male,bjj,57.0,Avishai,Gal,M,1986-07-06,L
+28,204858914,0397,172.0,56.0,female,bjj,36.0,Yifat,Natovich,F,1994-08-09,R
+29,324789916,0398,174.0,80.0,male,bjj,76.0,borodetsky,alexandr,M,1988-09-13,R
+30,011865821,0389,176.0,74.0,male,bjj,64.0,Mark,Shein Idelson,M,1976-08-26,R
+31,305045403,0355,180.0,70.0,male,climbing,40.0,Gal,Wodowski,M,1990-07-29,R
+32,203914031,0411,170.0,68.0,female,climbing,81.0,Stav,Kapuri,F,1992-02-25,L
+33,305437030,0412,171.0,68.0,male,climbing,15.0,Saar,Gal,M,1990-09-21,R
+34,204211403,0407,158.0,55.0,female,climbing,80.0,Sapir,Ben shushan,F,1993-02-08,R
+35,319308623,0400,163.0,65.0,female,climbing,16.0,Rita,Gubarev,F,1992-08-20,R
+36,204478564,0392,172.0,61.0,male,climbing,71.0,Avinoam,Ratzabi,M,1992-12-13,R
+37,203868492,0390,173.0,57.0,male,climbing,19.0,Gal Chaim,Sardas,M,1993-01-04,L
+38,316399856,0419,165.0,53.0,female,climbing,14.0,Maya,Biton,F,1996-05-13,R
+39,315393462,0422,180.0,76.0,male,climbing,43.0,Yam,Gellis,M,1995-09-20,R
+40,300561776,0394,160.0,55.0,female,climbing,46.0,Ayelet,Tsherniak,F,1986-11-18,R
+41,208409912,0374,162.0,62.0,female,climbing,51.0,yael,Taub,F,1996-12-21,R
+42,313384828,0467,179.0,70.0,male,climbing,17.0,Yeftach,Kushnir,M,1995-02-14,R
+43,204403885,0475,173.0,62.0,male,climbing,169.0,Alex,Khazanov,M,1995-03-02,R
+44,211357215,0375,167.0,56.0,female,climbing,59.0,Naama,Yohai,F,2000-04-21,R
+45,301046447,0504,180.0,73.0,male,climbing,145.0,Dolev,Roitman,M,1987-08-02,R
+46,209126119,0379,185.0,75.0,male,climbing,58.0,Alon,Rozgovitch,M,1998-10-19,L
+47,206337024,0380,177.0,66.0,male,climbing,61.0,Niv,Nagar,M,1994-10-07,R
+48,313115941,0395,184.0,70.0,male,climbing,96.0,Zeev Moshe,Fel,M,1994-12-26,R
+49,308454800,0386,160.0,50.0,male,climbing,68.0,Itkin,Eyal,M,1992-11-03,R
+50,034943563,0401,174.0,74.0,male,climbing,98.0,Ohad,Carny,M,1978-11-01,R
+51,207982919,0416,176.0,71.0,male,climbing,84.0,Shoval,Meltser,M,1996-02-14,R
+52,301025250,0418,180.0,73.0,male,climbing,121.0,Shay,Shemesh,M,1987-12-27,L
+53,313262933,0417,156.0,53.0,female,climbing,97.0,Inbar,Porat,F,1995-04-02,R
+54,313361768,0426,167.0,65.0,male,climbing,123.0,Sharon,Eizenman,M,1995-08-20,R
+55,203136585,0481,169.0,66.0,male,climbing,159.0,Gil,Bongart,M,1991-11-11,L
+56,307430264,0477,167.0,65.0,male,climbing,161.0,Subbotsky,Evgeny,M,1981-08-01,R
+57,032865404,0478,183.0,70.0,male,climbing,165.0,Haim,Baranek,M,1987-04-12,R
+58,320511421,0482,170.0,63.0,male,climbing,160.0,Nitzan,Bigman,M,1991-04-16,R
+59,201405370,0484,168.0,66.0,male,climbing,163.0,Amit,Ben dror,M,1990-01-12,R
+60,306838392,0479,178.0,63.0,female,climbing,170.0,Cyril,Ullman,M,1985-12-16,R
+61,305067381,0480,167.0,70.0,male,climbing,167.0,Nitzan,Ben Ner,M,1991-06-01,R
+62,203731112,0483,183.0,93.0,male,climbing,171.0,Ofer,Ben Shlomo,M,1991-07-16,R
+63,200689685,0485,170.0,62.0,male,climbing,166.0,Harel,Klopfer,M,1989-05-18,R
+64,203863816,0489,170.0,64.0,male,climbing,174.0,Ido,Mann,M,1993-08-02,L
+65,316593946,0492,186.0,80.0,male,climbing,150.0,Idan,Lanis,M,1996-03-06,R
+66,323216564,0493,183.0,75.0,male,climbing,140.0,Alex,Oren Sagaidakovski,M,1984-10-15,R
+67,307120329,0490,172.0,70.0,male,climbing,141.0,Eli,Guralnik,M,1989-05-05,R
+68,312370489,0495,182.0,73.0,male,climbing,139.0,Nathaniel,Applebaum,M,1994-04-19,R
+69,209085570,0503,178.0,64.0,male,climbing,144.0,Omer,Shachar,M,1998-08-27,R
+70,208287706,0505,176.0,67.0,male,climbing,146.0,Arkady,Axelrod,M,1995-10-01,L
+71,031674039,0529,174.0,70.0,male,climbing,933.0,Yossi,Blayer,M,1978-05-28,L
+72,304411341,0423,161.0,49.0,female,bjj,88.0,Rima,Shnayderman,F,1987-02-27,L
+73,028629228,0387,174.0,78.0,male,bjj,95.0,Liran,Grinbaum,M,1971-09-03,R
+74,027237213,0393,168.0,60.0,female,bjj,89.0,Murphy,Six,F,1974-08-09,R
+75,207018854,0473,168.0,62.0,female,music,156.0,Gal,Veron,F,1998-10-09,R
+76,324995950,0474,160.0,58.0,female,music,175.0,Gaia,Reemy,F,2002-05-23,R
+77,206460719,0476,160.0,50.0,female,music,162.0,Tamar,Barzilay,F,1999-06-21,R
+78,325114452,0511,193.0,76.0,male,music,902.0,Daniel,Yaffe,M,2002-04-25,R
+79,305434151,0516,180.0,84.0,female,music,892.0,Liron,Gulir,F,1991-07-26,
+80,204684062,0531,155.0,73.0,female,music,993.0,Noam,Fresko,F,1993-07-12,
