@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import pandas as pd
-import tqdm
 from dwiprep.dwiprep import DmriPrepManager
 
 from connectome_plasticity_project.utils.preprocessing import FREESURFER_DIR
@@ -115,40 +114,13 @@ class DmriManager:
             self.process_participant(i)
 
     @property
-    def subjects_manager(self):
+    def subjects_manager(self) -> pd.DataFrame:
+        """
+        Generates a subjects' manager to describe which ones need to be processed
+
+        Returns
+        -------
+        pd.DataFrame
+            A table that describes which subjects need to be processed.
+        """
         return self.query_subjects()
-
-
-# bids_query = BidsQuery(
-#     bids_dir,
-#     participant_label=participant_id,
-
-# )as
-# session = "202104251808"
-# session_data = bids_query.collect_data(participant_id)
-# kwargs = dict(
-#     freesurfer=False,
-#     hires=True,
-#     longitudinal=False,
-#     omp_nthreads=1,
-#     skull_strip_mode="force",
-#     skull_strip_template=Reference("OASIS30ANTs"),
-#     spaces=SpatialReferences(spaces=["MNI152NLin2009cAsym", "fsaverage5"]),
-# )
-# for participant in sorted(Path(bids_dir).glob("sub-*")):
-#     participant_id = participant.name.split("-")[-1]
-#     flag = Path(out_dir) / "dmriprep" / f"sub-{participant_id}"
-#     flag = [f for f in flag.glob("ses-*/dwi/*space-anat*")]
-#     if len(flag) > 0:
-#         print(f"Already processed {participant_id}")
-#         continue
-#     dmriprep = DmriPrepManager(
-#         bids_dir,
-#         out_dir,
-#         participant_label=participant_id,
-#         smriprep_kwargs=kwargs,
-#         fs_subjects_dir="/media/groot/Yalla/media/MRI/derivatives/freesurfer",
-#         **the_base_identifiers,
-#     )
-#     print(f"### Initiating workflow for participant {participant_id}... ###")
-#     dmriprep.run()
