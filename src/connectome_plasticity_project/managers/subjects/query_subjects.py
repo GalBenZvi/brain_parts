@@ -16,8 +16,9 @@ from connectome_plasticity_project.managers.subjects.process_subjects import (
 @click.command()
 @click.argument("base_dir", type=click.Path(exists=True))
 @click.option("-destination", "--destination", type=click.Path(), default=None)
-def main(base_dir: Path, destination: Path = None):
-    manager = SubjectsManager(base_dir, destination)
+@click.option("-bids_dir", "--bids_dir", type=click.Path(), default=None)
+def main(base_dir: Path, destination: Path = None, bids_dir: Path = None):
+    manager = SubjectsManager(base_dir, destination, bids_dir)
     manager.query_subjects()
 
 

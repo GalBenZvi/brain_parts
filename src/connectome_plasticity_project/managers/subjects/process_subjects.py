@@ -40,7 +40,9 @@ class SubjectsManager:
     DEFAULT_DESTINATION = "processed"
     LOGGER_FILE = "query.log"
 
-    def __init__(self, base_dir: Path, destination: Path = None) -> None:
+    def __init__(
+        self, base_dir: Path, destination: Path = None, bids_dir: Path = None
+    ) -> None:
         """
         Initiates a SubjectManager object
 
@@ -53,6 +55,7 @@ class SubjectsManager:
         self.destination = (
             destination or self.base_dir.parent / self.DEFAULT_DESTINATION
         )
+        self.bids_dir = Path(bids_dir)
         logging.basicConfig(
             filename=self.destination / self.LOGGER_FILE, **LOGGER_CONFIG
         )
@@ -176,6 +179,27 @@ class SubjectsManager:
                 missing_df = missing_df.append(row)
         return combined_df, missing_df
 
+    def query_bids(self, valids_subject: pd.DataFrame):
+        """
+        Combines available subjects with *self.bids_dir* if given.
+
+
+        Parameters
+        ----------
+        valids_subject : pd.DataFrame
+            A dataframe of available subjects
+        """
+        bids_available = [
+            sub.name.split("-")[-1] for sub in self.bids_dir.glob("sub-*")
+        ]
+        for i in valids_subject.index:
+            database_id = valids_subject.loc[i, "database_id"]
+            if database_id in bids_available:
+                valids_subject.loc[i, "rawdata"] = True
+            else:
+                valids_subject.loc[i, "rawdata"] = False
+        return valids_subject
+
     def query_subjects(self, return_data: bool = False):
         """
         A method to query both main tables (MRI table and database's IDs)
@@ -192,6 +216,8 @@ class SubjectsManager:
         """
         relevant_subjects = self.query_mri_table()
         valid, missing = self.query_database_ids(relevant_subjects)
+        if self.bids_dir:
+            valid = self.query_bids(valid)
         msg = SUMMARY_MESSAGE.format(
             num_valid=len(valid.index),
             num_missing=len(missing.index),

@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pandas as pd
+import tqdm
 from dwiprep.dwiprep import DmriPrepManager
 
 from connectome_plasticity_project.utils.preprocessing import FREESURFER_DIR
@@ -29,7 +30,9 @@ class DmriManager:
         """
         self.bids_dir = Path(bids_dir)
         self.destination = (
-            Path(destination) or self.bids_dir.parent / self.DESTINATION_NAME
+            Path(destination)
+            if destination
+            else self.bids_dir.parent / self.DESTINATION_NAME
         )
 
     def check_subject(
@@ -71,6 +74,9 @@ class DmriManager:
         participant_id : str
             Participant's identifier
         """
+        print(
+            f"### Initiating workflow for participant {participant_id}... ###"
+        )
         dmriprep = DmriPrepManager(
             self.bids_dir,
             self.destination,
@@ -99,6 +105,14 @@ class DmriManager:
                 subj, min_sessions
             )
         return manager
+
+    def run(self, max_total: int = None):
+        unprocessed = self.subjects_manager[
+            ~self.subjects_manager["processed"].astype(bool)
+        ]
+        max_total = max_total if max_total else (len(unprocessed) + 1)
+        for i in unprocessed.index[:max_total]:
+            self.process_participant(i)
 
     @property
     def subjects_manager(self):
