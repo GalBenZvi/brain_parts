@@ -1,12 +1,7 @@
 from pathlib import Path
 
-import bids
-from bids import BIDSLayout
+import pandas as pd
 from dwiprep.dwiprep import DmriPrepManager
-from dwiprep.utils.bids_query.bids_query import BidsQuery
-from dwiprep.workflows.dmri.base import init_dwi_preproc_wf
-from niworkflows.utils.spaces import Reference
-from niworkflows.utils.spaces import SpatialReferences
 
 from connectome_plasticity_project.utils.preprocessing import FREESURFER_DIR
 from connectome_plasticity_project.utils.preprocessing import SMRIPREP_KWARGS
@@ -34,10 +29,12 @@ class DmriManager:
         """
         self.bids_dir = Path(bids_dir)
         self.destination = (
-            destination or self.bids_dir.parent / self.DESTINATION_NAME
+            Path(destination) or self.bids_dir.parent / self.DESTINATION_NAME
         )
 
-    def check_subject(self, participant_id: str) -> bool:
+    def check_subject(
+        self, participant_id: str, min_sessions: int = 2
+    ) -> bool:
         """
         Checks whether a participant have alreadt been processed or not
 
@@ -51,9 +48,13 @@ class DmriManager:
         bool
             Whether this participant have been processed or not.
         """
+        pariticpant_raw = self.bids_dir / f"sub-{participant_id}"
         participant_destination = (
             self.destination / "dmriprep" / f"sub-{participant_id}"
         )
+        sessions = [s for s in pariticpant_raw.glob("ses-*")]
+        if len(sessions) < min_sessions:
+            return False
         final_outputs = [
             f for f in participant_destination.glob("ses-*/dwi/*space-anat*")
         ]
@@ -79,6 +80,29 @@ class DmriManager:
             **THE_BASE_IDENTIFIERS,
         )
         dmriprep.run()
+
+    def query_subjects(self, min_sessions: int = 2) -> pd.DataFrame:
+        """
+        Query available subjects (whether to process them or not)
+
+        Returns
+        -------
+        pd.DataFrame
+            A dataframe with subjects' identifiers and whether they have been processed.
+        """
+        subjects = sorted(
+            [s.name.split("-")[-1] for s in self.bids_dir.glob("sub-*")]
+        )
+        manager = pd.DataFrame(index=subjects, columns=["processed"])
+        for subj in subjects:
+            manager.loc[subj, "processed"] = self.check_subject(
+                subj, min_sessions
+            )
+        return manager
+
+    @property
+    def subjects_manager(self):
+        return self.query_subjects()
 
 
 # bids_query = BidsQuery(
