@@ -1,7 +1,7 @@
 import logging
 
 SUMMARY_MESSAGE = """
-Found {num_valid} available subjects and {num_missing} ones.
+Found {num_valid} available subjects and {num_missing} missing ones.
 Valids subjects' table can be found at {destination}/valid.csv.
 Missing subjects' table can be found at {destination}/missing.csv.
 """

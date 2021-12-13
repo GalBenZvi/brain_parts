@@ -102,7 +102,7 @@ class SubjectsManager:
             raise FileNotFoundError(
                 f"Unable to file MRI subjects' table at {database_ids}."
             )
-        return pd.read_csv(database_ids, converters={"ID Number": str})
+        return pd.read_csv(database_ids, converters={"ID": str})
 
     def query_mri_table(self) -> pd.DataFrame:
         """
@@ -130,7 +130,11 @@ class SubjectsManager:
                             break
                         else:
                             condition = "learner"
-                    transformed_row = transform_row(row, REPLACEMENT_COLUMNS)
+                    transformed_row = transform_row(
+                        row,
+                        origin="mri_table",
+                        replacements=REPLACEMENT_COLUMNS,
+                    )
                     transformed_row["group"] = value
                     transformed_row["condition"] = condition
                     relevant_subjects = relevant_subjects.append(
@@ -159,8 +163,13 @@ class SubjectsManager:
         for _, row in relevant_subjects.iterrows():
             subj_id = row["id"]
             if subj_id in self.databse_ids.index:
+                transformed_row = transform_row(
+                    self.databse_ids.loc[subj_id],
+                    origin="database",
+                    replacements=REPLACEMENT_COLUMNS,
+                )
                 combined_df = combined_df.append(
-                    pd.concat([row, self.databse_ids.loc[subj_id]]),
+                    pd.concat([row, transformed_row]),
                     ignore_index=True,
                 )
             else:

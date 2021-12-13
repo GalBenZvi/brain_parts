@@ -1,11 +1,21 @@
 import pandas as pd
 
 REPLACEMENT_COLUMNS = {
-    "ID": "id",
-    "Questionnaire": "questionnaire_id",
-    "Height": "height",
-    "Weight": "weight",
-    "Gender": "gender",
+    "mri_table": {
+        "ID": "id",
+        "Questionnaire": "questionnaire_id",
+        "Height": "height",
+        "Weight": "weight",
+        "Gender": "gender",
+    },
+    "database": {
+        "ID": "database_id",
+        "First Name": "first name",
+        "Last Name": "last name",
+        "Sex": "sex",
+        "Date Of Birth": "dob",
+        "Dominant Hand": "dominant hand",
+    },
 }
 
 SUMMARY_MESSAGE = """
@@ -16,7 +26,9 @@ Missing subjects' table can be found at {destination}/missing.csv.
 
 
 def transform_row(
-    row: pd.Series, replacements: dict = REPLACEMENT_COLUMNS
+    row: pd.Series,
+    origin: str = "mri_table",
+    replacements: dict = REPLACEMENT_COLUMNS,
 ) -> pd.Series:
     """
     Replaces columns according to *replacements*
@@ -33,6 +45,7 @@ def transform_row(
     pd.Series
         A transformed series.
     """
+    replacements = replacements.get(origin)
     transformed_row = row[[key for key in replacements.keys()]]
     transformed_row.index = [val for val in replacements.values()]
     return transformed_row
