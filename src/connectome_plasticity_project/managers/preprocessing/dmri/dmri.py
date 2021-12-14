@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pandas as pd
 from dwiprep.dwiprep import DmriPrepManager
+from numpy import isin
 
 from connectome_plasticity_project.utils.preprocessing import FREESURFER_DIR
 from connectome_plasticity_project.utils.preprocessing import SMRIPREP_KWARGS
@@ -56,7 +57,7 @@ class DmriManager:
         )
         sessions = [s for s in pariticpant_raw.glob("ses-*")]
         if len(sessions) < min_sessions:
-            return False
+            return True
         final_outputs = [
             f for f in participant_destination.glob("ses-*/dwi/*space-anat*")
         ]
@@ -105,13 +106,19 @@ class DmriManager:
             )
         return manager
 
-    def run(self, max_total: int = None):
-        unprocessed = self.subjects_manager[
-            ~self.subjects_manager["processed"].astype(bool)
-        ]
-        max_total = max_total if max_total else (len(unprocessed) + 1)
-        for i in unprocessed.index[:max_total]:
-            self.process_participant(i)
+    def run(self, max_total: int = None, participant_label: list = None):
+        if not participant_label:
+            unprocessed = self.subjects_manager[
+                ~self.subjects_manager["processed"].astype(bool)
+            ]
+            max_total = max_total if max_total else (len(unprocessed) + 1)
+            for i in sorted(unprocessed.index[:max_total]):
+                self.process_participant(i)
+        else:
+            if not isinstance(participant_label, list):
+                participant_label = [participant_label]
+            for i in sorted(participant_label):
+                self.process_participant(i)
 
     @property
     def subjects_manager(self) -> pd.DataFrame:
