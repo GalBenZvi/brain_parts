@@ -55,7 +55,7 @@ class DmriManager:
         participant_destination = (
             self.destination / "dmriprep" / f"sub-{participant_id}"
         )
-        sessions = [s for s in pariticpant_raw.glob("ses-*")]
+        sessions = [s for s in pariticpant_raw.glob("ses-*/dwi")]
         if len(sessions) < min_sessions:
             return True
         final_outputs = [
@@ -107,6 +107,16 @@ class DmriManager:
         return manager
 
     def run(self, max_total: int = None, participant_label: list = None):
+        """
+        Run *dMRIPrep* for *max_total* subjects or specific subjects declared in *participant_label*.
+
+        Parameters
+        ----------
+        max_total : int, optional
+            Number of subjects to run, by default All available subjects.
+        participant_label : list, optional
+            Specific subjects' IDs to run, by default None
+        """
         if not participant_label:
             unprocessed = self.subjects_manager[
                 ~self.subjects_manager["processed"].astype(bool)
