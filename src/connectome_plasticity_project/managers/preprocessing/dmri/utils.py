@@ -1,4 +1,4 @@
-OUTPUTS = {
+DMRIPREP_OUTPUTS = {
     # Anatomicals
     "native_T1w": ["dmriprep", "anat", "desc-preproc_T1w.nii.gz"],
     "native_brain_mask": ["dmriprep", "anat", "desc-brain_mask.nii.gz"],
