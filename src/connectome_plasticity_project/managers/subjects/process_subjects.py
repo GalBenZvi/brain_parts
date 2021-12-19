@@ -1,3 +1,4 @@
+import datetime
 import json
 import logging
 import logging.config
@@ -41,7 +42,7 @@ class SubjectsManager:
 
     #: Default destination locations
     DEFAULT_DESTINATION = "processed"
-    LOGGER_FILE = "query.log"
+    LOGGER_FILE = "query_{timestamp}.log"
 
     def __init__(
         self,
@@ -63,8 +64,11 @@ class SubjectsManager:
             destination or self.base_dir.parent / self.DEFAULT_DESTINATION
         )
         self.bids_dir = Path(bids_dir) if bids_dir else None
+        timestamp = datetime.datetime.today().strftime("%Y-%m-%d-%H:%M:%S")
         logging.basicConfig(
-            filename=self.destination / self.LOGGER_FILE, **LOGGER_CONFIG
+            filename=self.destination
+            / self.LOGGER_FILE.format(timestamp=timestamp),
+            **LOGGER_CONFIG,
         )
         if validate_fieldmaps and self.bids_dir:
             self.fix_fieldmaps()
