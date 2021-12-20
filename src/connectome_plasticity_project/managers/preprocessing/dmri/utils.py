@@ -242,3 +242,5 @@ DMRIPREP_OUTPUTS = {
     "freesurfer_wmparc_stats": ["freesurfer", "stats", "wmparc.stats"],
     "freesurfer_BA_stats": ["freesurfer", "stats", ".BA_exvivo*.stats"],
 }
+
+TENSOR_METRICS = ["ADC", "FA", "AD", "RD", "CL", "CP", "CS", "EVAL"]
