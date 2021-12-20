@@ -78,12 +78,34 @@ def parcellate_subject_tensors(
     parcels: pd.DataFrame,
     parcellation_scheme: str,
 ):
+    """
+    Parcellates available data for *participant_label*, declared by *multi_column* levels.
+
+    Parameters
+    ----------
+    dmriprep_dir : Path
+        Path to *dmriprep* outputs' directory
+    participant_label : str
+        A label referring to an existing subject
+    image : Path
+        Path to subject's native-space parcellation
+    multi_column : pd.MultiIndex
+        A multi-column constructed by ROI * metrics.
+    parcels : pd.DataFrame
+        A dataframe describing the parcellation scheme.
+    parcellation_scheme : str
+        The name of the parcellation scheme.
+
+    Returns
+    -------
+    pd.DataFrame
+        A dataframe containing all of *participant_label*'s data, parcellated by *parcellation_scheme*.
+    """
     sessions = [
         s.name.split("-")[-1]
         for s in dmriprep_dir.glob(f"sub-{participant_label}/ses-*")
     ]
     multi_index = pd.MultiIndex.from_product([[participant_label], sessions])
-    mask = Brain_Data(image)
     subj_data = pd.DataFrame(index=multi_index, columns=multi_column)
     for session in sessions:
         out_file = Path(
@@ -145,15 +167,18 @@ def parcellate_tensors(
         logging.info(
             f"Averaging tensor-derived metrics according to {parcellation_scheme} parcels, in subject {participant_label} anatomical space."
         )
-        subj_data = parcellate_subject_tensors(
-            dmriprep_dir,
-            participant_label,
-            image,
-            multi_column,
-            parcels,
-            parcellation_scheme,
-        )
-        data = pd.concat([data, subj_data])
+        try:
+            subj_data = parcellate_subject_tensors(
+                dmriprep_dir,
+                participant_label,
+                image,
+                multi_column,
+                parcels,
+                parcellation_scheme,
+            )
+            data = pd.concat([data, subj_data])
+        except FileNotFoundError:
+            logging.warn(f"Missing files for subject {participant_label}.")
     return data
 
 

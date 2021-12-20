@@ -15,6 +15,9 @@ from connectome_plasticity_project.managers.parcellation.utils import (
     PARCELLATIONS,
 )
 from connectome_plasticity_project.managers.parcellation.utils import at_ants
+from connectome_plasticity_project.managers.parcellation.utils import (
+    parcellate_tensors,
+)
 from connectome_plasticity_project.managers.preprocessing.dmri.utils import (
     TENSOR_METRICS,
 )
@@ -174,25 +177,53 @@ class Parcellation:
                 at_ants(in_file, reference, transformation, out_file, nn=True)
         return subjects_parcellations
 
-    def collect_tensors_metrics(self, parcellation_scheme: str):
-        """
-        Parcellates tensor-derived metrics according to *parcellation_scheme*
+    def collect_tensors_metrics(
+        self, parcellation_scheme: str
+    ) -> pd.DataFrame:
+        """Parcellates tensor-derived metrics according to *parcellation_scheme*
 
         Parameters
         ----------
         parcellation_scheme : str
             A string representing existing key within *self.parcellations*.
+
+        Returns
+        -------
+        pd.DataFrame
+            A dictionary with representing subjects, and values containing paths to subjects-space parcellations.
         """
-        destination = self.destination / "dmri_tensors"
-        destination.mkdir(exist_ok=True, parents=True)
         parcels = self.parcellations.get(parcellation_scheme).get("parcels")
         parcellations = self.register_parcellation_scheme(
-            "dmri", parcellation_scheme
+            "dmriprep", parcellation_scheme
         )
         multi_column = pd.MultiIndex.from_product(
             [parcels.index, self.TENSOR_METRICS]
         )
-        df = pd.DataFrame(index=parcellations.keys(), columns=multi_column)
+        return parcellate_tensors(
+            self.dmriprep_dir,
+            multi_column,
+            parcellations,
+            parcels,
+            parcellation_scheme,
+        )
+
+    def run_all(self, parcellation_scheme: str):
+        """
+        Run all available parcellation methods
+
+        Parameters
+        ----------
+        parcellation_scheme : str
+            Parcellation scheme representing an existing key in *self.parcellations*
+        """
+        target = self.destination / parcellation_scheme
+        for out_file, function in zip(
+            ["dmri/tensors.csv"], [self.collect_tensors_metrics]
+        ):
+            data = function(parcellation_scheme)
+            destination = target / out_file
+            destination.parent.mkdir(exist_ok=True, parents=True)
+            data.to_csv(destination)
 
     @property
     def dmriprep_dir(self) -> Path:
