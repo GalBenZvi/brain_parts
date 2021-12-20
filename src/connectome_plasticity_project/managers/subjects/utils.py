@@ -1,3 +1,8 @@
+import json
+import logging
+import os
+from pathlib import Path
+
 import pandas as pd
 
 REPLACEMENT_COLUMNS = {
@@ -49,3 +54,101 @@ def transform_row(
     transformed_row = row[[key for key in replacements.keys()]]
     transformed_row.index = [val for val in replacements.values()]
     return transformed_row
+
+
+def fix_session(ses_dir: Path):
+    """
+    Perform several pre-defined issues with BIDS sturcture
+
+    Parameters
+    ----------
+    ses_dir : Path
+        Path to subject's session to be quaried and fixed.
+    """
+    clean_irepi(ses_dir)
+    funcs = fix_naturalistic_func(ses_dir)
+    update_fmap_json(ses_dir, funcs)
+
+
+def clean_irepi(ses_dir: Path):
+    """
+    Remove irrelavent IR-EPI sequences.
+
+    Parameters
+    ----------
+    ses_dir : Path
+        Path to subject's session to be quaried and fixed.
+    """
+    irepi = [f for f in ses_dir.glob("anat/*IRT1.*")]
+    if irepi:
+        logging.info(f"Found {len(irepi)} IR-EPI images to be removed")
+        for i in irepi:
+            i.unlink()
+
+
+def fix_naturalistic_func(ses_dir: Path) -> list:
+    """[summary]
+
+    Parameters
+    ----------
+    ses_dir : Path
+        Path to subject's session to be quaried and fixed.
+
+    Returns
+    -------
+    list
+        List of Paths representing subject's funcitonal images.
+    """
+    func_imgs = [f for f in ses_dir.glob("func/*")]
+    if len(func_imgs) != 4:
+        functionals = []
+        logging.info(
+            f"Found {len(func_imgs)} functional images to be renamed."
+        )
+        for f in func_imgs:
+            parts = f.name.split("_")
+            task = f.name.split("_")[-3]
+            new_task = task.replace("Ap", "").replace("Sbref", "")
+            parts[-3] = new_task
+            new_name = "_".join(parts)
+            new_f = f.parent / new_name
+            os.rename(f, new_f)
+            functionals.append(new_f)
+        return functionals
+
+
+def update_fmap_json(ses_dir: Path, funcs: list):
+    """
+    Update functional fieldmaps to account for changed functional images in *funcs*
+
+    Parameters
+    ----------
+    ses_dir : Path
+        Path to subject's session to be quaried and fixed.
+    funcs : list
+        List of Paths representing subject's funcitonal images.
+    """
+    if not funcs:
+        return
+    fmap_jsons = [f for f in ses_dir.glob("fmap/*acq-func*.json")]
+    if not fmap_jsons:
+        logging.warn(
+            f"No fieldmap file found for subject {ses_dir.parent.name}!"
+        )
+        return
+    for fmap_json in fmap_jsons:
+        with open(str(fmap_json), "r+") as f:
+            data = json.load(f)
+            data["IntendedFor"] = list(
+                set(
+                    [
+                        f"{ses_dir.name}/func/{i.name}"
+                        for i in funcs
+                        if str(i).endswith(".nii.gz")
+                    ]
+                )
+            )
+            f.seek(0)
+            json.dump(data, f, indent=4)
+            f.truncate()
+            f.close()

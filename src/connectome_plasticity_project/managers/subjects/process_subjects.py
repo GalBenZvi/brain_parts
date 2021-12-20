@@ -17,6 +17,7 @@ from connectome_plasticity_project.managers.subjects.messages import (
 from connectome_plasticity_project.managers.subjects.utils import (
     REPLACEMENT_COLUMNS,
 )
+from connectome_plasticity_project.managers.subjects.utils import fix_session
 from connectome_plasticity_project.managers.subjects.utils import transform_row
 
 
@@ -41,7 +42,7 @@ class SubjectsManager:
     }
 
     #: Default destination locations
-    DEFAULT_DESTINATION = "processed"
+    DEFAULT_DESTINATION = "subjects/processed"
     LOGGER_FILE = "query_{timestamp}.log"
 
     def __init__(
@@ -50,6 +51,7 @@ class SubjectsManager:
         destination: Path = None,
         bids_dir: Path = None,
         validate_fieldmaps: bool = True,
+        fix_bids: bool = True,
     ) -> None:
         """
         Initiates a SubjectManager object
@@ -70,8 +72,10 @@ class SubjectsManager:
             / self.LOGGER_FILE.format(timestamp=timestamp),
             **LOGGER_CONFIG,
         )
-        if validate_fieldmaps and self.bids_dir:
+        if validate_fieldmaps and self.bids_dir.exists():
             self.fix_fieldmaps()
+        if fix_bids and self.bids_dir.exists():
+            self.validate_and_fix_bids()
 
     def get_mri_table(self) -> pd.DataFrame:
         """
@@ -213,6 +217,14 @@ class SubjectsManager:
                 valids_subject.loc[i, "rawdata"] = False
         return valids_subject
 
+    def validate_and_fix_bids(self):
+        """
+        Fixes pre-defined issues with the BIDS structure.
+        """
+        for subj in self.bids_dir.glob("sub-*"):
+            for ses in subj.glob("ses-*"):
+                fix_session(ses)
+
     def query_subjects(self, return_data: bool = False):
         """
         A method to query both main tables (MRI table and database's IDs)
@@ -341,7 +353,6 @@ class SubjectsManager:
             for ses in sessions:
                 dwi_fmap = [f for f in ses.glob("fmap/*acq-dwi*.nii.gz")]
                 if not dwi_fmap:
-
                     logging.info(
                         f"Using single-session's fieldmap for all available ones for {subj.name}"
                     )
