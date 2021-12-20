@@ -36,7 +36,38 @@ LOGGER_CONFIG = dict(
 )
 
 TENSOR_METRICS_FILES_TEMPLATE = "{dmriprep_dir}/sub-{participant_label}/ses-{session}/dwi/sub-{participant_label}_ses-{session}_dir-FWD_space-anat_desc-{metric}_epiref.nii.gz"
-TENSOR_METRICS_OUTPUT_TEMPLATE = "{dmriprep_dir}/sub-{participant_label}/ses-{session}/dwi/sub-{participant_label}_ses-{session}_desc-TensorMetrics_atlas-{parcellation_scheme}.csv"
+TENSOR_METRICS_OUTPUT_TEMPLATE = "{dmriprep_dir}/sub-{participant_label}/ses-{session}/dwi/sub-{participant_label}_ses-{session}_space-anat_desc-TensorMetrics_atlas-{parcellation_scheme}.csv"
+
+
+def parcellate_image(
+    atlas: Path, image: Path, parcels: pd.DataFrame
+) -> pd.Series:
+    """
+    Parcellates an image according to *atlas*
+
+    Parameters
+    ----------
+    atlas : Path
+        A parcellation atlas in *image* space.
+    image : Path
+        An image to be parcellated
+    parcels : pd.DataFrame
+        A dataframe for *atlas* parcels.
+
+    Returns
+    -------
+    pd.Series
+        The mean value of *image* in each *atlas* parcel.
+    """
+    atlas_data = nib.load(atlas).get_fdata()
+    data = nib.load(image).get_fdata()
+    out = pd.Series(index=parcels.index)
+    for i in parcels.index:
+        label = parcels.loc[i, "Label"]
+        mask = atlas_data == label
+        out.loc[i] = data[mask].mean()
+
+    return out
 
 
 def parcellate_subject_tensors(
@@ -44,6 +75,7 @@ def parcellate_subject_tensors(
     participant_label: str,
     image: Path,
     multi_column: pd.MultiIndex,
+    parcels: pd.DataFrame,
     parcellation_scheme: str,
 ):
     sessions = [
@@ -76,11 +108,9 @@ def parcellate_subject_tensors(
                     session=session,
                     metric=metric.lower(),
                 )
-                metric_image = Brain_Data(metric_file)
-                data = metric_image.extract_roi(mask)
                 subj_data.loc[
                     (participant_label, session), (slice(None), metric)
-                ] = data
+                ] = parcellate_image(image, metric_file, parcels).values
             subj_data.loc[(participant_label, session)].to_csv(out_file)
 
     return subj_data
@@ -90,6 +120,7 @@ def parcellate_tensors(
     dmriprep_dir: Path,
     multi_column: pd.MultiIndex,
     parcellations: dict,
+    parcels: pd.DataFrame,
     parcellation_scheme: str,
 ) -> pd.DataFrame:
     """
@@ -119,6 +150,7 @@ def parcellate_tensors(
             participant_label,
             image,
             multi_column,
+            parcels,
             parcellation_scheme,
         )
         data = pd.concat([data, subj_data])
