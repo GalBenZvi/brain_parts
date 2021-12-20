@@ -98,6 +98,8 @@ class Parcellation:
             An output (derivatives) directort of either *fmriprep* or *dmriprep*
         """
         anat_dir = subject_dir / "anat"
+        reference = transformation = None
+        valid = True
         if not anat_dir.exists():
             try:
                 anat_dir = [d for d in subject_dir.glob("ses-*/anat")][0]
@@ -105,24 +107,30 @@ class Parcellation:
                 logging.warn(
                     f"Could not locate anatomical reference for subject {participant_label}."
                 )
-                return
-        reference = [
-            f
-            for f in anat_dir.glob(
-                self.ANATOMICAL_REFERENCE.format(
-                    participant_label=participant_label
+                valid = False
+        try:
+            reference = [
+                f
+                for f in anat_dir.glob(
+                    self.ANATOMICAL_REFERENCE.format(
+                        participant_label=participant_label
+                    )
                 )
-            )
-        ][0]
-        transformation = [
-            f
-            for f in anat_dir.glob(
-                self.MNI_TO_NATIVE_TRANSFORMATION.format(
-                    participant_label=participant_label
+            ][0]
+            transformation = [
+                f
+                for f in anat_dir.glob(
+                    self.MNI_TO_NATIVE_TRANSFORMATION.format(
+                        participant_label=participant_label
+                    )
                 )
+            ][0]
+        except IndexError:
+            logging.warn(
+                f"Could not find anatomical reference for subject {participant_label}."
             )
-        ][0]
-        return reference, transformation
+            valid = False
+        return reference, transformation, valid
 
     def register_parcellation_scheme(
         self, analysis_type: str, parcellation_scheme: str
@@ -132,6 +140,9 @@ class Parcellation:
 
         Parameters
         ----------
+        analysis_type : str
+            A string that represents an available analysis (i.e dmriprep, fmriprep, etc.)
+
         parcellation_scheme : str
             A string representing existing key within *self.parcellations*.
         """
@@ -140,9 +151,15 @@ class Parcellation:
         subjects_parcellations = {}
         for subject_dir in output_dir.glob("sub-*"):
             participant_label = subject_dir.name.split("-")[-1]
-            reference, transformation = self.locate_anatomical_reference(
+            (
+                reference,
+                transformation,
+                valid,
+            ) = self.locate_anatomical_reference(
                 subject_dir, participant_label
             )
+            if not valid:
+                continue
             out_file = reference.with_name(
                 reference.name.replace(
                     "desc-preproc_T1w",
@@ -168,18 +185,14 @@ class Parcellation:
         """
         destination = self.destination / "dmri_tensors"
         destination.mkdir(exist_ok=True, parents=True)
-        image, parcels = [
-            self.parcellations.get(parcellation_scheme).get(key)
-            for key in ["image", "parcels"]
-        ]
-        subjects = [
-            s.name.split("-")[-1]
-            for s in sorted(self.dmriprep_dir.glob("sub-*"))
-        ]
+        parcels = self.parcellations.get(parcellation_scheme).get("parcels")
+        parcellations = self.register_parcellation_scheme(
+            "dmri", parcellation_scheme
+        )
         multi_column = pd.MultiIndex.from_product(
             [parcels.index, self.TENSOR_METRICS]
         )
-        df = pd.DataFrame(index=subjects, columns=multi_column)
+        df = pd.DataFrame(index=parcellations.keys(), columns=multi_column)
 
     @property
     def dmriprep_dir(self) -> Path:
