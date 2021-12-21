@@ -23,8 +23,8 @@ from connectome_plasticity_project.managers.subjects.utils import transform_row
 
 class SubjectsManager:
     #: Pre-defined files' names
-    MRI_TABLE_NAME = "MRI_table.xlsx"
-    DATABASE_IDS_NAME = "subjects.csv"
+    MRI_TABLE_NAME = "raw/MRI_table.xlsx"
+    DATABASE_IDS_NAME = "raw/subjects.csv"
 
     #: TheBase sheet name
     THE_BASE_SHEET = "THE BASE"

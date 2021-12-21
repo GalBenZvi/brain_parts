@@ -1,6 +1,7 @@
 import datetime
 import logging
 import logging.config
+import os
 from pathlib import Path
 
 import pandas as pd
@@ -15,6 +16,9 @@ from connectome_plasticity_project.managers.parcellation.utils import (
     PARCELLATIONS,
 )
 from connectome_plasticity_project.managers.parcellation.utils import at_ants
+from connectome_plasticity_project.managers.parcellation.utils import (
+    freesurfer_anatomical_parcellation,
+)
 from connectome_plasticity_project.managers.parcellation.utils import (
     parcellate_tensors,
 )
@@ -107,9 +111,6 @@ class Parcellation:
             try:
                 anat_dir = [d for d in subject_dir.glob("ses-*/anat")][0]
             except IndexError:
-                logging.warn(
-                    f"Could not locate anatomical reference for subject {participant_label}."
-                )
                 valid = False
         try:
             reference = [
@@ -129,9 +130,6 @@ class Parcellation:
                 )
             ][0]
         except IndexError:
-            logging.warn(
-                f"Could not find anatomical reference for subject {participant_label}."
-            )
             valid = False
         return reference, transformation, valid
 
@@ -162,6 +160,9 @@ class Parcellation:
                 subject_dir, participant_label
             )
             if not valid:
+                logging.warn(
+                    f"Could not locate anatomical reference for subject {participant_label}."
+                )
                 continue
             out_file = reference.with_name(
                 reference.name.replace(
@@ -176,6 +177,28 @@ class Parcellation:
                 )
                 at_ants(in_file, reference, transformation, out_file, nn=True)
         return subjects_parcellations
+
+    def generate_freesurfer_metrics(self, parcellation_scheme: str):
+        """
+        mris_ca_label -sdir ../../freesurfer/ sub-14 lh surf/lh.sphere.reg /media/groot/Data/Parcellations/MNI/Brainnetome_FS/lh.BN_Atlas.gcs lh.bn.annot
+        mris_anatomical_stats -a label/lh.bn.annot -b sub-14 lh
+
+
+
+        Parameters
+        ----------
+        parcellation_scheme : str
+            A string representing existing key within *self.parcellations*.
+        """
+        gcs = self.parcellations.get(parcellation_scheme).get("gcs")
+        if not gcs:
+            raise (
+                f"No available Freesurfer .gcs file located for parcellation scheme {parcellation_scheme}!"
+            )
+        for subj in self.freesurfer_dir.glob("sub-*"):
+            stats = freesurfer_anatomical_parcellation(
+                self.freesurfer_dir, subj.name, parcellation_scheme, gcs
+            )
 
     def collect_tensors_metrics(
         self, parcellation_scheme: str
@@ -259,4 +282,7 @@ class Parcellation:
         Path
             *freesurfer* outputs' directory.
         """
-        return self.locate_outputs("freesurfer")
+        freesurfer_dir = self.locate_outputs("freesurfer")
+        if freesurfer_dir.exists():
+            os.system("export SUBJECTS_DIR={freesurfer_dir}")
+        return freesurfer_dir

@@ -5,7 +5,10 @@ from pathlib import Path
 import nibabel as nib
 import pandas as pd
 import tqdm
+from nipype.interfaces import freesurfer
 from nipype.interfaces.ants import ApplyTransforms
+from nipype.interfaces.freesurfer import MRIsCALabel
+from nipype.interfaces.freesurfer import ParcellationStats
 from nltools.data import Brain_Data
 from nltools.mask import expand_mask
 
@@ -22,6 +25,8 @@ PARCELLATIONS = {
         "path": BN_IMAGE,
         "image": nib.load(BN_IMAGE),
         "parcels": pd.read_csv(BN_PARCELS, index_col=0),
+        "gcs": "/media/groot/Data/Parcellations/MNI/Brainnetome_FS/{hemi}.BN_Atlas.gcs",
+        "gcs_subcortex": "/media/groot/Data/Parcellations/MNI/Brainnetome_FS/BN_Atlas_subcortex.gca",
     }
 }
 
@@ -37,6 +42,156 @@ LOGGER_CONFIG = dict(
 
 TENSOR_METRICS_FILES_TEMPLATE = "{dmriprep_dir}/sub-{participant_label}/ses-{session}/dwi/sub-{participant_label}_ses-{session}_dir-FWD_space-anat_desc-{metric}_epiref.nii.gz"
 TENSOR_METRICS_OUTPUT_TEMPLATE = "{dmriprep_dir}/sub-{participant_label}/ses-{session}/dwi/sub-{participant_label}_ses-{session}_space-anat_desc-TensorMetrics_atlas-{parcellation_scheme}.csv"
+
+
+def generate_annotation_file(
+    freesurfer_dir: Path, subject: str, parcellation_scheme: str, gcs: str
+):
+    """
+    For a single subject, produces an annotation file, in which each cortical surface vertex is assigned a neuroanatomical label.
+
+    Parameters
+    ----------
+    freesurfer_dir : Path
+        Path to Freesurfer's outputs directory
+    subject : str
+        A string representing an existing subject in *freesurfer_dir*
+    parcellation_scheme : str
+        The name of the parcellation scheme.
+    gcs : str
+        A freesurfer's .gcs template file.
+
+    Returns
+    -------
+    dict
+        A dictionary with keys of hemispheres and values as corresponding .annot files.
+    """
+    annot_files = {}
+    for hemi in ["lh", "rh"]:
+        reg_file = freesurfer_dir / subject / "surf" / f"{hemi}.sphere.reg"
+        curv, smoothwm, sulc = [
+            freesurfer_dir / subject / "surf" / f"{hemi}.{surftype}"
+            for surftype in ["smoothwm", "curv", "sulc"]
+        ]
+        hemi_gcs = gcs.format(hemi=hemi)
+        out_file = (
+            freesurfer_dir
+            / subject
+            / "label"
+            / f"{hemi}.{parcellation_scheme}.annot"
+        )
+        if not out_file.exists():
+            logging.info(
+                f"Generating annotation file for {parcellation_scheme} in {subject} {hemi} space."
+            )
+            calabel = MRIsCALabel(
+                canonsurf=reg_file,
+                subjects_dir=freesurfer_dir,
+                curv=curv,
+                smoothwm=smoothwm,
+                sulc=sulc,
+                subject_id=subject,
+                hemisphere=hemi,
+                out_file=out_file,
+                classifier=hemi_gcs,
+                seed=42,
+            )
+            calabel.run()
+        annot_files[hemi] = out_file
+    return annot_files
+
+
+def generate_default_args(freesurfer_dir: Path, subject: str) -> dict:
+    """
+    Gather default required arguments for nipype's implementation of Freesurfer's *mris_anatomical_stats*
+
+    Parameters
+    ----------
+    freesurfer_dir : Path
+        Path to Freesurfer's outputs directory
+    subject : str
+        A string representing an existing subject in *freesurfer_dir*
+
+    Returns
+    -------
+    dict
+        A dictionary with keys that map to nipype's required arguements
+    """
+    args = {"subject_id": subject, "subjects_dir": freesurfer_dir}
+    subject_dir = freesurfer_dir / subject
+
+    for hemi in ["lh", "rh"]:
+        for datatype in ["pial", "white"]:
+            args[f"{hemi}_{datatype}"] = (
+                subject_dir / "surf" / f"{hemi}.{datatype}"
+            )
+    for key, value in zip(
+        ["brainmask", "aseg", "ribbon", "wm", "transform"],
+        [
+            "brainmask.mgz",
+            "aseg.presurf.mgz",
+            "ribbon.mgz",
+            "wm.mgz",
+            "transforms/talairach.xfm",
+        ],
+    ):
+        args[key] = subject_dir / "mri" / value
+    args["tabular_output"] = True
+    return args
+
+
+def freesurfer_anatomical_parcellation(
+    freesurfer_dir: Path, subject: str, parcellation_scheme: str, gcs: str
+):
+    """
+    Calculates different Freesurfer-derived metrics according to .annot files
+
+    Parameters
+    ----------
+    freesurfer_dir : Path
+        Path to Freesurfer's outputs directory
+    subject : str
+        A string representing an existing subject in *freesurfer_dir*
+    parcellation_scheme : str
+        The name of the parcellation scheme.
+    gcs : str
+        A freesurfer's .gcs template file.
+
+    Returns
+    -------
+    dict
+        A dictionary with keys corresponding to hemisphere's metrics acoording to *parcellation_scheme*
+    """
+    annotations = generate_annotation_file(
+        freesurfer_dir, subject, parcellation_scheme, gcs
+    )
+    args = generate_default_args(freesurfer_dir, subject)
+    stats = {}
+    for hemi, annot_file in annotations.items():
+        stats[hemi] = {}
+        out_color = (
+            freesurfer_dir
+            / subject
+            / "label"
+            / f"aparc.annot.{parcellation_scheme}.ctab"
+        )
+        out_table = (
+            freesurfer_dir
+            / subject
+            / "stats"
+            / f"{hemi}.{parcellation_scheme}.stats"
+        )
+        args["hemisphere"] = hemi
+        args["in_annotation"] = annot_file
+        args["thickness"] = (
+            freesurfer_dir / subject / "surf" / f"{hemi}.thickness"
+        )
+        if not out_table.exists() or not out_color.exists():
+            parcstats = ParcellationStats(**args)
+            parcstats.run()
+        stats[hemi]["table"] = out_table
+        stats[hemi]["color"] = out_color
+    return stats
 
 
 def parcellate_image(
