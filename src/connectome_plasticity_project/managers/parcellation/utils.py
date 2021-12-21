@@ -1,4 +1,5 @@
 import logging
+import os
 import warnings
 from pathlib import Path
 
@@ -42,6 +43,8 @@ LOGGER_CONFIG = dict(
 
 TENSOR_METRICS_FILES_TEMPLATE = "{dmriprep_dir}/sub-{participant_label}/ses-{session}/dwi/sub-{participant_label}_ses-{session}_dir-FWD_space-anat_desc-{metric}_epiref.nii.gz"
 TENSOR_METRICS_OUTPUT_TEMPLATE = "{dmriprep_dir}/sub-{participant_label}/ses-{session}/dwi/sub-{participant_label}_ses-{session}_space-anat_desc-TensorMetrics_atlas-{parcellation_scheme}.csv"
+
+APARCTSTATS2TABLE = "aparcstats2table --subjects {subjects} --parc={parcellation_scheme} --hemi={hemi} --measure={measure} --tablefile={out_file}"
 
 
 def generate_annotation_file(
@@ -192,6 +195,48 @@ def freesurfer_anatomical_parcellation(
         stats[hemi]["table"] = out_table
         stats[hemi]["color"] = out_color
     return stats
+
+
+def group_freesurfer_metrics(
+    subjects: list, destination: Path, parcellation_scheme: str
+):
+    """
+    Utilizes Freesurfer's aparcstats2table to group different Freesurfer-derived across subjects according to *parcellation_scheme*
+
+    Parameters
+    ----------
+    subjects : list
+        A list of subjects located under *SUBJECTS_DIR*
+    destination : Path
+        The destination underwhich group-wise files will be stored
+    parcellation_scheme : str
+        The parcellation scheme (subjects must have stats/{hemi}.{parcellation_scheme}.stats file for this to work)
+    """
+    destination.mkdir(exist_ok=True, parents=True)
+    data = {}
+    for hemi in ["lh", "rh"]:
+        data[hemi] = {}
+        for measure in [
+            "area",
+            "volume",
+            "thickness",
+            "thicknessstd",
+            "meancurv",
+        ]:
+            out_file = (
+                destination / f"{hemi}_{parcellation_scheme}_{measure}.csv"
+            )
+            if not out_file.exists():
+                cmd = APARCTSTATS2TABLE.format(
+                    subjects=" ".join(subjects),
+                    parcellation_scheme=parcellation_scheme,
+                    hemi=hemi,
+                    measure=measure,
+                    out_file=out_file,
+                )
+                os.system(cmd)
+            data[hemi][measure] = out_file
+    return data
 
 
 def parcellate_image(

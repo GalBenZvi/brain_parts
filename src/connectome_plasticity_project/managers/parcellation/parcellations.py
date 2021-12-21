@@ -20,6 +20,9 @@ from connectome_plasticity_project.managers.parcellation.utils import (
     freesurfer_anatomical_parcellation,
 )
 from connectome_plasticity_project.managers.parcellation.utils import (
+    group_freesurfer_metrics,
+)
+from connectome_plasticity_project.managers.parcellation.utils import (
     parcellate_tensors,
 )
 from connectome_plasticity_project.managers.preprocessing.dmri.utils import (
@@ -191,14 +194,46 @@ class Parcellation:
             A string representing existing key within *self.parcellations*.
         """
         gcs = self.parcellations.get(parcellation_scheme).get("gcs")
+        freesurfer_metrics = {}
         if not gcs:
             raise (
                 f"No available Freesurfer .gcs file located for parcellation scheme {parcellation_scheme}!"
             )
         for subj in self.freesurfer_dir.glob("sub-*"):
-            stats = freesurfer_anatomical_parcellation(
-                self.freesurfer_dir, subj.name, parcellation_scheme, gcs
-            )
+            try:
+                stats = freesurfer_anatomical_parcellation(
+                    self.freesurfer_dir, subj.name, parcellation_scheme, gcs
+                )
+                freesurfer_metrics[subj.name] = stats
+            except:
+                logging.error(
+                    f"Failed parcellating {subj.name} Freesurfer-derived data..."
+                )
+                continue
+        return freesurfer_metrics
+
+    def collect_freesurfer_metrics(self, parcellation_scheme: str) -> dict:
+        """
+        Utilizes Freesurfer's aparcstats2table to group different Freesurfer-derived across subjects according to *parcellation_scheme*
+
+        Parameters
+        ----------
+        parcellation_scheme : str
+            A string representing existing key within *self.parcellations*.
+
+        Returns
+        -------
+        dict
+            A dictionary containing the location of all files with freesurfer-derived metrics stored in them.
+        """
+        destination = self.destination / parcellation_scheme / "smri" / "tmp"
+        subjects_metrics = self.generate_freesurfer_metrics(
+            parcellation_scheme
+        )
+        group_wise_data = group_freesurfer_metrics(
+            list(subjects_metrics.keys()), destination, parcellation_scheme
+        )
+        return group_wise_data
 
     def collect_tensors_metrics(
         self, parcellation_scheme: str
@@ -284,5 +319,5 @@ class Parcellation:
         """
         freesurfer_dir = self.locate_outputs("freesurfer")
         if freesurfer_dir.exists():
-            os.system("export SUBJECTS_DIR={freesurfer_dir}")
+            os.environ["SUBJECTS_DIR"] = str(freesurfer_dir)
         return freesurfer_dir
