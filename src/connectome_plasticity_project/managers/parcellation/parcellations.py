@@ -15,6 +15,9 @@ from connectome_plasticity_project.managers.parcellation.utils import (
 from connectome_plasticity_project.managers.parcellation.utils import (
     PARCELLATIONS,
 )
+from connectome_plasticity_project.managers.parcellation.utils import (
+    apply_mask,
+)
 from connectome_plasticity_project.managers.parcellation.utils import at_ants
 from connectome_plasticity_project.managers.parcellation.utils import (
     freesurfer_anatomical_parcellation,
@@ -44,6 +47,10 @@ class Parcellation:
     MNI_TO_NATIVE_TRANSFORMATION = (
         "sub-{participant_label}*from-MNI*_to-T1w*_xfm.h5"
     )
+    GM_PROBABILITY = "sub-{participant_label}*_label-GM_probseg.nii.gz"
+
+    #: Default thresholding value for masking
+    MASKING_THRESHOLD = 0
     #: Default destination locations
     LOGGER_FILE = "parcellation_{timestamp}.log"
 
@@ -108,7 +115,7 @@ class Parcellation:
             An output (derivatives) directort of either *fmriprep* or *dmriprep*
         """
         anat_dir = subject_dir / "anat"
-        reference = transformation = None
+        reference = transformation = gm_mask = None
         valid = True
         if not anat_dir.exists():
             try:
@@ -132,12 +139,23 @@ class Parcellation:
                     )
                 )
             ][0]
+            gm_mask = [
+                f
+                for f in anat_dir.glob(
+                    self.GM_PROBABILITY.format(
+                        participant_label=participant_label
+                    )
+                )
+            ][0]
         except IndexError:
             valid = False
-        return reference, transformation, valid
+        return reference, transformation, gm_mask, valid
 
     def register_parcellation_scheme(
-        self, analysis_type: str, parcellation_scheme: str
+        self,
+        analysis_type: str,
+        parcellation_scheme: str,
+        crop_to_gm: bool = True,
     ):
         """
         Register a parcellation scheme to subjects' anatomical space
@@ -158,6 +176,7 @@ class Parcellation:
             (
                 reference,
                 transformation,
+                gm_mask,
                 valid,
             ) = self.locate_anatomical_reference(
                 subject_dir, participant_label
@@ -173,12 +192,24 @@ class Parcellation:
                     f"space-anat_atlas-{parcellation_scheme}",
                 )
             )
-            subjects_parcellations[participant_label] = out_file
-            if not out_file.exists():
+            out_masked = reference.with_name(
+                reference.name.replace(
+                    "desc-preproc_T1w",
+                    f"space-anat_desc-GM_atlas-{parcellation_scheme}",
+                )
+            )
+            subjects_parcellations[participant_label] = (
+                out_masked if crop_to_gm else out_file
+            )
+            if not out_file.exists() or not out_masked.exists():
                 logging.info(
                     f"Transforming {parcellation_scheme} atlas from standard to subject {participant_label}'s anatomical space."
                 )
                 at_ants(in_file, reference, transformation, out_file, nn=True)
+                apply_mask(
+                    gm_mask, out_file, out_masked, self.MASKING_THRESHOLD
+                )
+
         return subjects_parcellations
 
     def generate_freesurfer_metrics(self, parcellation_scheme: str):
@@ -236,7 +267,7 @@ class Parcellation:
         return group_wise_data
 
     def collect_tensors_metrics(
-        self, parcellation_scheme: str
+        self, parcellation_scheme: str, force: bool = False
     ) -> pd.DataFrame:
         """Parcellates tensor-derived metrics according to *parcellation_scheme*
 
@@ -263,9 +294,10 @@ class Parcellation:
             parcellations,
             parcels,
             parcellation_scheme,
+            force,
         )
 
-    def run_all(self, parcellation_scheme: str):
+    def run_all(self, parcellation_scheme: str, force: bool = False):
         """
         Run all available parcellation methods
 
@@ -278,7 +310,7 @@ class Parcellation:
         for out_file, function in zip(
             ["dmri/tensors.csv"], [self.collect_tensors_metrics]
         ):
-            data = function(parcellation_scheme)
+            data = function(parcellation_scheme, force=force)
             destination = target / out_file
             destination.parent.mkdir(exist_ok=True, parents=True)
             data.to_csv(destination)

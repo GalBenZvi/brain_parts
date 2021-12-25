@@ -6,12 +6,11 @@ from pathlib import Path
 import nibabel as nib
 import pandas as pd
 import tqdm
-from nipype.interfaces import freesurfer
+from nipype.interfaces import fsl
 from nipype.interfaces.ants import ApplyTransforms
 from nipype.interfaces.freesurfer import MRIsCALabel
 from nipype.interfaces.freesurfer import ParcellationStats
-from nltools.data import Brain_Data
-from nltools.mask import expand_mask
+from numpy import mask_indices
 
 warnings.filterwarnings("ignore")
 BN_IMAGE = Path(
@@ -277,6 +276,7 @@ def parcellate_subject_tensors(
     multi_column: pd.MultiIndex,
     parcels: pd.DataFrame,
     parcellation_scheme: str,
+    force: bool = False,
 ):
     """
     Parcellates available data for *participant_label*, declared by *multi_column* levels.
@@ -316,7 +316,7 @@ def parcellate_subject_tensors(
                 parcellation_scheme=parcellation_scheme,
             )
         )
-        if out_file.exists():
+        if out_file.exists() and not force:
             data = pd.read_csv(out_file, index_col=[0, 1], header=[0, 1])
             subj_data.loc[(participant_label, session)] = data.T.loc[
                 (participant_label, session)
@@ -344,6 +344,7 @@ def parcellate_tensors(
     parcellations: dict,
     parcels: pd.DataFrame,
     parcellation_scheme: str,
+    force: bool = False,
 ) -> pd.DataFrame:
     """
     Parcellate *dmriprep* derived tensor's metrics according to ROI stated by *df*
@@ -375,6 +376,7 @@ def parcellate_tensors(
                 multi_column,
                 parcels,
                 parcellation_scheme,
+                force,
             )
             data = pd.concat([data, subj_data])
         except FileNotFoundError:
@@ -421,3 +423,27 @@ def at_ants(
         at.run()
     else:
         return at
+
+
+def apply_mask(mask: Path, target: Path, out_file: Path, threshold: float):
+    """
+    Apply pre-calculated mask to *target* using specified *threshold*
+
+    Parameters
+    ----------
+    mask : Path
+        Pre-calculated mask
+    target : Path
+        Target to apply mask to
+    out_file : Path
+        Path tp output masked image
+    threshold: float
+        Thresold to use for masking
+    """
+    if not out_file.exists():
+        mask_img, target_img = [nib.load(f) for f in [mask, target]]
+        bin_mask = mask_img.get_fdata() > threshold
+        masked_target = target_img.get_fdata().copy()
+        masked_target[~bin_mask] = 0
+        masked_image = nib.Nifti1Image(masked_target, target_img.affine)
+        nib.save(masked_image, out_file)
