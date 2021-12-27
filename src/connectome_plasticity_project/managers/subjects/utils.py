@@ -56,6 +56,28 @@ def transform_row(
     return transformed_row
 
 
+def clean_dwi(ses_dir: Path):
+    """
+    Delete multiple DWI series due to an error occurd in the past
+
+    Parameters
+    ----------
+    ses_dir : Path
+        A row to be transformed
+    """
+    dwi_imgs = [f for f in ses_dir.glob("dwi/*_dwi.nii.gz")]
+    if len(dwi_imgs) > 1:
+        logging.info(
+            f"Found {len(dwi_imgs) - 1} DWI series images to be removed"
+        )
+        dwi_associated_files = [f for f in ses_dir.glob("dwi/*")]
+        for dwi in dwi_associated_files:
+            if "run-1" not in dwi.name:
+                dwi.unlink()
+            else:
+                os.rename(dwi, dwi.with_name(dwi.name.replace("_run-1", "")))
+
+
 def fix_session(ses_dir: Path):
     """
     Perform several pre-defined issues with BIDS sturcture
@@ -67,7 +89,9 @@ def fix_session(ses_dir: Path):
     """
     clean_irepi(ses_dir)
     funcs = fix_naturalistic_func(ses_dir)
-    update_fmap_json(ses_dir, funcs)
+    update_func_fmap_json(ses_dir, funcs)
+    clean_dwi(ses_dir)
+    update_dwi_fmap_json(ses_dir)
 
 
 def clean_irepi(ses_dir: Path):
@@ -117,7 +141,7 @@ def fix_naturalistic_func(ses_dir: Path) -> list:
         return functionals
 
 
-def update_fmap_json(ses_dir: Path, funcs: list):
+def update_func_fmap_json(ses_dir: Path, funcs: list):
     """
     Update functional fieldmaps to account for changed functional images in *funcs*
 
@@ -133,7 +157,7 @@ def update_fmap_json(ses_dir: Path, funcs: list):
     fmap_jsons = [f for f in ses_dir.glob("fmap/*acq-func*.json")]
     if not fmap_jsons:
         logging.warn(
-            f"No fieldmap file found for subject {ses_dir.parent.name}!"
+            f"No fMRI-related fieldmap file found for subject {ses_dir.parent.name}!"
         )
         return
     for fmap_json in fmap_jsons:
@@ -144,6 +168,42 @@ def update_fmap_json(ses_dir: Path, funcs: list):
                     [
                         f"{ses_dir.name}/func/{i.name}"
                         for i in funcs
+                        if str(i).endswith(".nii.gz")
+                    ]
+                )
+            )
+            f.seek(0)
+            json.dump(data, f, indent=4)
+            f.truncate()
+            f.close()
+
+
+def update_dwi_fmap_json(ses_dir: Path):
+    """
+    Update functional fieldmaps to account for changed functional images in *funcs*
+
+    Parameters
+    ----------
+    ses_dir : Path
+        Path to subject's session to be quaried and fixed.
+    funcs : list
+        List of Paths representing subject's funcitonal images.
+    """
+    dwis = [f for f in ses_dir.glob("dwi/*.nii.gz")]
+    fmap_jsons = [f for f in ses_dir.glob("fmap/*acq-dwi*.json")]
+    if not fmap_jsons:
+        logging.warn(
+            f"No diffusion-related fieldmap file found for subject {ses_dir.parent.name}!"
+        )
+        return
+    for fmap_json in fmap_jsons:
+        with open(str(fmap_json), "r+") as f:
+            data = json.load(f)
+            data["IntendedFor"] = list(
+                set(
+                    [
+                        f"{ses_dir.name}/func/{i.name}"
+                        for i in dwis
                         if str(i).endswith(".nii.gz")
                     ]
                 )

@@ -267,7 +267,10 @@ class Parcellation:
         return group_wise_data
 
     def collect_tensors_metrics(
-        self, parcellation_scheme: str, force: bool = False
+        self,
+        parcellation_scheme: str,
+        cropped_to_gm: bool = True,
+        force: bool = False,
     ) -> pd.DataFrame:
         """Parcellates tensor-derived metrics according to *parcellation_scheme*
 
@@ -283,7 +286,7 @@ class Parcellation:
         """
         parcels = self.parcellations.get(parcellation_scheme).get("parcels")
         parcellations = self.register_parcellation_scheme(
-            "dmriprep", parcellation_scheme
+            "dmriprep", parcellation_scheme,cropped_to_gm
         )
         multi_column = pd.MultiIndex.from_product(
             [parcels.index, self.TENSOR_METRICS]
@@ -294,6 +297,7 @@ class Parcellation:
             parcellations,
             parcels,
             parcellation_scheme,
+            cropped_to_gm,
             force,
         )
 

@@ -276,6 +276,7 @@ def parcellate_subject_tensors(
     multi_column: pd.MultiIndex,
     parcels: pd.DataFrame,
     parcellation_scheme: str,
+    cropped_to_gm: bool = True,
     force: bool = False,
 ):
     """
@@ -316,6 +317,10 @@ def parcellate_subject_tensors(
                 parcellation_scheme=parcellation_scheme,
             )
         )
+        if cropped_to_gm:
+            out_name = out_file.name.split("_")
+            out_name.insert(3, "label-GM")
+            out_file = out_file.parent / "_".join(out_name)
         if out_file.exists() and not force:
             data = pd.read_csv(out_file, index_col=[0, 1], header=[0, 1])
             subj_data.loc[(participant_label, session)] = data.T.loc[
@@ -344,6 +349,7 @@ def parcellate_tensors(
     parcellations: dict,
     parcels: pd.DataFrame,
     parcellation_scheme: str,
+    cropped_to_gm: bool = True,
     force: bool = False,
 ) -> pd.DataFrame:
     """
@@ -376,6 +382,7 @@ def parcellate_tensors(
                 multi_column,
                 parcels,
                 parcellation_scheme,
+                cropped_to_gm,
                 force,
             )
             data = pd.concat([data, subj_data])
