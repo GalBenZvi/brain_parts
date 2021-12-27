@@ -13,12 +13,8 @@ from nipype.interfaces.freesurfer import ParcellationStats
 from numpy import mask_indices
 
 warnings.filterwarnings("ignore")
-BN_IMAGE = Path(
-    "/media/groot/Data/Parcellations/MNI/BN_Atlas_274_combined_1mm.nii.gz"
-)
-BN_PARCELS = Path(
-    "/media/groot/Data/Parcellations/MNI/BNA_with_cerebellum.csv"
-)
+BN_IMAGE = Path("/media/groot/Data/Parcellations/MNI/BN_Atlas_274_combined_1mm.nii.gz")
+BN_PARCELS = Path("/media/groot/Data/Parcellations/MNI/BNA_with_cerebellum.csv")
 
 PARCELLATIONS = {
     "brainnetome": {
@@ -77,10 +73,7 @@ def generate_annotation_file(
         ]
         hemi_gcs = gcs.format(hemi=hemi)
         out_file = (
-            freesurfer_dir
-            / subject
-            / "label"
-            / f"{hemi}.{parcellation_scheme}.annot"
+            freesurfer_dir / subject / "label" / f"{hemi}.{parcellation_scheme}.annot"
         )
         if not out_file.exists():
             logging.info(
@@ -124,9 +117,7 @@ def generate_default_args(freesurfer_dir: Path, subject: str) -> dict:
 
     for hemi in ["lh", "rh"]:
         for datatype in ["pial", "white"]:
-            args[f"{hemi}_{datatype}"] = (
-                subject_dir / "surf" / f"{hemi}.{datatype}"
-            )
+            args[f"{hemi}_{datatype}"] = subject_dir / "surf" / f"{hemi}.{datatype}"
     for key, value in zip(
         ["brainmask", "aseg", "ribbon", "wm", "transform"],
         [
@@ -178,16 +169,11 @@ def freesurfer_anatomical_parcellation(
             / f"aparc.annot.{parcellation_scheme}.ctab"
         )
         out_table = (
-            freesurfer_dir
-            / subject
-            / "stats"
-            / f"{hemi}.{parcellation_scheme}.stats"
+            freesurfer_dir / subject / "stats" / f"{hemi}.{parcellation_scheme}.stats"
         )
         args["hemisphere"] = hemi
         args["in_annotation"] = annot_file
-        args["thickness"] = (
-            freesurfer_dir / subject / "surf" / f"{hemi}.thickness"
-        )
+        args["thickness"] = freesurfer_dir / subject / "surf" / f"{hemi}.thickness"
         if not out_table.exists() or not out_color.exists():
             parcstats = ParcellationStats(**args)
             parcstats.run()
@@ -222,9 +208,7 @@ def group_freesurfer_metrics(
             "thicknessstd",
             "meancurv",
         ]:
-            out_file = (
-                destination / f"{hemi}_{parcellation_scheme}_{measure}.csv"
-            )
+            out_file = destination / f"{hemi}_{parcellation_scheme}_{measure}.csv"
             if not out_file.exists():
                 cmd = APARCTSTATS2TABLE.format(
                     subjects=" ".join(subjects),
@@ -238,9 +222,7 @@ def group_freesurfer_metrics(
     return data
 
 
-def parcellate_image(
-    atlas: Path, image: Path, parcels: pd.DataFrame
-) -> pd.Series:
+def parcellate_image(atlas: Path, image: Path, parcels: pd.DataFrame) -> pd.Series:
     """
     Parcellates an image according to *atlas*
 

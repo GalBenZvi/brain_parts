@@ -65,11 +65,9 @@ def clean_dwi(ses_dir: Path):
     ses_dir : Path
         A row to be transformed
     """
-    dwi_imgs = [f for f in ses_dir.glob("dwi/*_dwi.nii.gz")]
+    dwi_imgs = [f for f in ses_dir.glob("dwi/*dir-FWD*_dwi.nii.gz")]
     if len(dwi_imgs) > 1:
-        logging.info(
-            f"Found {len(dwi_imgs) - 1} DWI series images to be removed"
-        )
+        logging.info(f"Found {len(dwi_imgs) - 1} DWI series images to be removed")
         dwi_associated_files = [f for f in ses_dir.glob("dwi/*")]
         for dwi in dwi_associated_files:
             if "run-1" not in dwi.name:
@@ -126,9 +124,7 @@ def fix_naturalistic_func(ses_dir: Path) -> list:
     func_imgs = [f for f in ses_dir.glob("func/*")]
     if len(func_imgs) != 4:
         functionals = []
-        logging.info(
-            f"Found {len(func_imgs)} functional images to be renamed."
-        )
+        logging.info(f"Found {len(func_imgs)} functional images to be renamed.")
         for f in func_imgs:
             parts = f.name.split("_")
             task = f.name.split("_")[-3]
