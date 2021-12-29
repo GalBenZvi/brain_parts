@@ -35,7 +35,10 @@ class DmriManager:
             else self.bids_dir.parent / self.DESTINATION_NAME
         )
 
-    def check_subject(self, participant_id: str, min_sessions: int = 2) -> bool:
+    def check_subject(
+        self,
+        participant_id: str,
+    ) -> bool:
         """
         Checks whether a participant have alreadt been processed or not
 
@@ -54,14 +57,10 @@ class DmriManager:
             self.destination / "dmriprep" / f"sub-{participant_id}"
         )
         sessions = [s for s in pariticpant_raw.glob("ses-*/dwi")]
-        if len(sessions) < min_sessions:
-            return True
         final_outputs = [
             f for f in participant_destination.glob("ses-*/dwi/*space-anat*")
         ]
-        if len(final_outputs) > 0:
-            return True
-        return False
+        return len(final_outputs) > 0, len(sessions)
 
     def process_participant(self, participant_id: str):
         """
@@ -72,7 +71,9 @@ class DmriManager:
         participant_id : str
             Participant's identifier
         """
-        print(f"### Initiating workflow for participant {participant_id}... ###")
+        print(
+            f"### Initiating workflow for participant {participant_id}... ###"
+        )
         dmriprep = DmriPrepManager(
             self.bids_dir,
             self.destination,
@@ -92,10 +93,16 @@ class DmriManager:
         pd.DataFrame
             A dataframe with subjects' identifiers and whether they have been processed.
         """
-        subjects = sorted([s.name.split("-")[-1] for s in self.bids_dir.glob("sub-*")])
-        manager = pd.DataFrame(index=subjects, columns=["processed"])
+        subjects = sorted(
+            [s.name.split("-")[-1] for s in self.bids_dir.glob("sub-*")]
+        )
+        manager = pd.DataFrame(
+            index=subjects, columns=["processed", "num_sessions"]
+        )
         for subj in subjects:
-            manager.loc[subj, "processed"] = self.check_subject(subj, min_sessions)
+            manager.loc[
+                subj, ["processed", "num_sessions"]
+            ] = self.check_subject(subj)
         return manager
 
     def run(self, max_total: int = None, participant_label: list = None):
