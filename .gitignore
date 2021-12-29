@@ -79,6 +79,7 @@ docs/_build
 # Sensitive data
 data/*
 src/connectome_plasticity_project/utils/pylabber.py
+src/connectome_plasticity_project/statistics
 
 # mat and nipype's outputs
 *.nii*
