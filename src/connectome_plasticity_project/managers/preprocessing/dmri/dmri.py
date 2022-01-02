@@ -84,7 +84,7 @@ class DmriManager:
         )
         dmriprep.run()
 
-    def query_subjects(self, min_sessions: int = 2) -> pd.DataFrame:
+    def query_subjects(self) -> pd.DataFrame:
         """
         Query available subjects (whether to process them or not)
 
@@ -105,7 +105,12 @@ class DmriManager:
             ] = self.check_subject(subj)
         return manager
 
-    def run(self, max_total: int = None, participant_label: list = None):
+    def run(
+        self,
+        max_total: int = None,
+        participant_label: list = None,
+        min_sessions: int = 2,
+    ):
         """
         Run *dMRIPrep* for *max_total* subjects or specific subjects declared in *participant_label*.
 
@@ -118,7 +123,8 @@ class DmriManager:
         """
         if not participant_label:
             unprocessed = self.subjects_manager[
-                ~self.subjects_manager["processed"].astype(bool)
+                (~self.subjects_manager["processed"].astype(bool))
+                & (self.subjects_manager["num_sessions"] >= min_sessions)
             ]
             max_total = max_total if max_total else (len(unprocessed) + 1)
             for i in sorted(unprocessed.index[:max_total]):

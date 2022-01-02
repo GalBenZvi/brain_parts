@@ -68,7 +68,7 @@ def clean_dwi(ses_dir: Path):
     dwi_imgs = [f for f in ses_dir.glob("dwi/*dir-FWD*run-*_dwi.nii.gz")]
     if len(dwi_imgs) > 1:
         logging.info(
-            f"Found {len(dwi_imgs) - 1} DWI series images to be removed"
+            f"Found {len(dwi_imgs)} DWI series images to be renamed/changed"
         )
         for dwi_img in dwi_imgs:
             template = dwi_img.name.split(".")[0]

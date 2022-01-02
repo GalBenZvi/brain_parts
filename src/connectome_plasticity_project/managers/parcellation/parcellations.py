@@ -239,7 +239,7 @@ class Parcellation:
                     self.freesurfer_dir, subj.name, parcellation_scheme, gcs
                 )
                 stats["subcortex"] = {}
-                # stats["table"] = 
+                # stats["table"] =
                 freesurfer_metrics[subj.name] = stats
             except:
                 logging.error(
@@ -248,7 +248,9 @@ class Parcellation:
                 continue
         return freesurfer_metrics
 
-    def collect_freesurfer_metrics(self, parcellation_scheme: str) -> dict:
+    def collect_freesurfer_metrics(
+        self, parcellation_scheme: str, force: bool = True
+    ) -> dict:
         """
         Utilizes Freesurfer's aparcstats2table to group different Freesurfer-derived across subjects according to *parcellation_scheme*
 
@@ -267,7 +269,10 @@ class Parcellation:
             parcellation_scheme
         )
         group_wise_data = group_freesurfer_metrics(
-            list(subjects_metrics.keys()), destination, parcellation_scheme
+            list(subjects_metrics.keys()),
+            destination,
+            parcellation_scheme,
+            force,
         )
         return group_wise_data
 

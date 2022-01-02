@@ -303,7 +303,10 @@ def freesurfer_anatomical_parcellation(
 
 
 def group_freesurfer_metrics(
-    subjects: list, destination: Path, parcellation_scheme: str
+    subjects: list,
+    destination: Path,
+    parcellation_scheme: str,
+    force=True,
 ):
     """
     Utilizes Freesurfer's aparcstats2table to group different Freesurfer-derived across subjects according to *parcellation_scheme*
@@ -331,7 +334,7 @@ def group_freesurfer_metrics(
             out_file = (
                 destination / f"{hemi}_{parcellation_scheme}_{measure}.csv"
             )
-            if not out_file.exists():
+            if not out_file.exists() or force:
                 cmd = APARCTSTATS2TABLE.format(
                     subjects=" ".join(subjects),
                     parcellation_scheme=parcellation_scheme,
