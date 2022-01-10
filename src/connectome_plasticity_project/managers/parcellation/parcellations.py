@@ -281,6 +281,7 @@ class Parcellation:
         parcellation_scheme: str,
         cropped_to_gm: bool = True,
         force: bool = False,
+        np_operation: str = "nanmean",
     ) -> pd.DataFrame:
         """Parcellates tensor-derived metrics according to *parcellation_scheme*
 
@@ -309,9 +310,15 @@ class Parcellation:
             parcellation_scheme,
             cropped_to_gm,
             force,
+            np_operation,
         )
 
-    def run_all(self, parcellation_scheme: str, force: bool = False):
+    def run_all(
+        self,
+        parcellation_scheme: str,
+        force: bool = False,
+        operation: str = "nanmean",
+    ):
         """
         Run all available parcellation methods
 
@@ -322,7 +329,8 @@ class Parcellation:
         """
         target = self.destination / parcellation_scheme
         for out_file, function in zip(
-            ["dmri/tensors.csv"], [self.collect_tensors_metrics]
+            [f"dmri/tensors_meas-{operation.replace('nan','')}.csv"],
+            [self.collect_tensors_metrics],
         ):
             data = function(parcellation_scheme, force=force)
             destination = target / out_file

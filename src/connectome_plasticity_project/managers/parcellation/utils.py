@@ -5,6 +5,7 @@ from pathlib import Path
 from re import template
 
 import nibabel as nib
+import numpy as np
 import pandas as pd
 import tqdm
 from nipype.interfaces import fsl
@@ -13,7 +14,6 @@ from nipype.interfaces.freesurfer import CALabel
 from nipype.interfaces.freesurfer import MRIsCALabel
 from nipype.interfaces.freesurfer import ParcellationStats
 from nipype.interfaces.freesurfer import SegStats
-from numpy import mask_indices
 
 warnings.filterwarnings("ignore")
 BN_IMAGE = Path(
@@ -45,7 +45,7 @@ LOGGER_CONFIG = dict(
 )
 
 TENSOR_METRICS_FILES_TEMPLATE = "{dmriprep_dir}/sub-{participant_label}/ses-{session}/dwi/sub-{participant_label}_ses-{session}_dir-FWD_space-anat_desc-{metric}_epiref.nii.gz"
-TENSOR_METRICS_OUTPUT_TEMPLATE = "{dmriprep_dir}/sub-{participant_label}/ses-{session}/dwi/sub-{participant_label}_ses-{session}_space-anat_desc-TensorMetrics_atlas-{parcellation_scheme}.csv"
+TENSOR_METRICS_OUTPUT_TEMPLATE = "{dmriprep_dir}/sub-{participant_label}/ses-{session}/dwi/sub-{participant_label}_ses-{session}_space-anat_desc-TensorMetrics_atlas-{parcellation_scheme}_meas-{measure}.csv"
 
 APARCTSTATS2TABLE = "aparcstats2table --subjects {subjects} --parc={parcellation_scheme} --hemi={hemi} --measure={measure} --tablefile={out_file}"
 
@@ -348,7 +348,7 @@ def group_freesurfer_metrics(
 
 
 def parcellate_image(
-    atlas: Path, image: Path, parcels: pd.DataFrame
+    atlas: Path, image: Path, parcels: pd.DataFrame, np_operation="nanmean"
 ) -> pd.Series:
     """
     Parcellates an image according to *atlas*
@@ -373,7 +373,7 @@ def parcellate_image(
     for i in parcels.index:
         label = parcels.loc[i, "Label"]
         mask = atlas_data == label
-        out.loc[i] = data[mask].mean()
+        out.loc[i] = eval(f"np.{np_operation}(data[mask])")
 
     return out
 
@@ -387,6 +387,7 @@ def parcellate_subject_tensors(
     parcellation_scheme: str,
     cropped_to_gm: bool = True,
     force: bool = False,
+    np_operation: str = "nanmean",
 ):
     """
     Parcellates available data for *participant_label*, declared by *multi_column* levels.
@@ -424,6 +425,7 @@ def parcellate_subject_tensors(
                 participant_label=participant_label,
                 session=session,
                 parcellation_scheme=parcellation_scheme,
+                measure=np_operation.replace("nan", ""),
             )
         )
         if cropped_to_gm:
@@ -446,9 +448,10 @@ def parcellate_subject_tensors(
                 )
                 subj_data.loc[
                     (participant_label, session), (slice(None), metric)
-                ] = parcellate_image(image, metric_file, parcels).values
+                ] = parcellate_image(
+                    image, metric_file, parcels, np_operation
+                ).values
             subj_data.loc[(participant_label, session)].to_csv(out_file)
-
     return subj_data
 
 
@@ -460,6 +463,7 @@ def parcellate_tensors(
     parcellation_scheme: str,
     cropped_to_gm: bool = True,
     force: bool = False,
+    np_operation: str = "nanmean",
 ) -> pd.DataFrame:
     """
     Parcellate *dmriprep* derived tensor's metrics according to ROI stated by *df*
@@ -493,6 +497,7 @@ def parcellate_tensors(
                 parcellation_scheme,
                 cropped_to_gm,
                 force,
+                np_operation,
             )
             data = pd.concat([data, subj_data])
         except FileNotFoundError:
