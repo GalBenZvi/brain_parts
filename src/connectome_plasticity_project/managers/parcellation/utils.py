@@ -2,13 +2,10 @@ import logging
 import os
 import warnings
 from pathlib import Path
-from re import template
 
 import nibabel as nib
-import numpy as np
 import pandas as pd
 import tqdm
-from nipype.interfaces import fsl
 from nipype.interfaces.ants import ApplyTransforms
 from nipype.interfaces.freesurfer import CALabel
 from nipype.interfaces.freesurfer import MRIsCALabel
@@ -43,6 +40,21 @@ LOGGER_CONFIG = dict(
     format="%(asctime)s - %(message)s",
     level=logging.INFO,
 )
+
+DWI2TENSOR_CMD = "dwi2tensor -grad {grad} {dwi} {out_file}"
+TENSOR2METRIC_KWARGS_MAPPING = {
+    "fa": "fa",
+    "adc": "adc",
+    "ad": "ad",
+    "rd": "rd",
+    "cl": "cl",
+    "cp": "cp",
+    "cs": "cs",
+    "eval": "value",
+}
+
+
+QSIPREP_DWI_TEMPLATE = "{qsiprep_dir}/sub-{participant_label}/ses-{session}/dwi/sub-{participant_label}_ses-{session}_space-T1w_desc-preproc_dwi.{extension}"
 
 TENSOR_METRICS_FILES_TEMPLATE = "{dmriprep_dir}/sub-{participant_label}/ses-{session}/dwi/sub-{participant_label}_ses-{session}_dir-FWD_space-anat_desc-{metric}_epiref.nii.gz"
 TENSOR_METRICS_OUTPUT_TEMPLATE = "{dmriprep_dir}/sub-{participant_label}/ses-{session}/dwi/sub-{participant_label}_ses-{session}_space-anat_desc-TensorMetrics_atlas-{parcellation_scheme}_meas-{measure}.csv"
@@ -453,6 +465,122 @@ def parcellate_subject_tensors(
                 ).values
             subj_data.loc[(participant_label, session)].to_csv(out_file)
     return subj_data
+
+
+def dwi2tensor(in_file: Path, grad: Path, out_file: Path):
+    """
+    Estimate diffusion's tensor via *mrtrix3*'s *dwi2tensor*.
+
+    Parameters
+    ----------
+    in_file : Path
+        DWI series
+    grad : Path
+        DWI gradient table in *mrtrix3*'s format.
+    out_file : Path
+        Output template
+
+    Returns
+    -------
+    Path
+        Refined output in *mrtrix3*'s .mif format.
+    """
+    out_name = out_file.name.split(".")[0]
+    out_file = out_file.with_name("." + out_name + ".mif")
+    if not out_file.exists():
+        cmd = DWI2TENSOR_CMD.format(grad=grad, dwi=in_file, out_file=out_file)
+        os.system(cmd)
+    return out_file
+
+
+def tensor2metric(
+    tensor: Path,
+    derivatives: Path,
+    participant_label: str,
+    session: str,
+    metrics: list,
+):
+    """[summary]
+
+    Parameters
+    ----------
+    tensor : Path
+        [description]
+    derivatives : Path
+        [description]
+    participant_label : str
+        [description]
+    session : str
+        [description]
+    metrics : list
+        [description]
+    """
+    cmd = f"tensor2metric"
+    flag = []
+    for metric in metrics:
+        metric_file = TENSOR_METRICS_FILES_TEMPLATE.format(
+            dmriprep_dir=derivatives,
+            participant_label=participant_label,
+            session=session,
+            metric=metric.lower(),
+        )
+        if Path(metric_file).exists():
+            flag.append(False)
+        else:
+            flag.append(True)
+        cmd += f" -{TENSOR2METRIC_KWARGS_MAPPING.get(metric.lower())} {metric_file}"
+    cmd += f" {tensor}"
+    if any(flag):
+        os.system(cmd)
+
+
+def estimate_tensors(
+    parcellations: dict,
+    derivatives_dir: Path,
+    multi_column: pd.MultiIndex,
+):
+    """
+
+    Parameters
+    ----------
+    parcellation_scheme : str
+        A string representing a parcellation atlas.
+    parcellations : dict
+        A dictionary with subjects as keys and their corresponding *parcellation_scheme* in native space.
+    derivatives_dir : Path
+        Path to derivatives, usually *qsiprep*'s.
+
+    Returns
+    -------
+    [type]
+        [description]
+    """
+    metrics = multi_column.levels[-1]
+    for participant_label, image in tqdm.tqdm(parcellations.items()):
+        logging.info(
+            f"Estimating tensor-derived metrics in subject {participant_label} anatomical space."
+        )
+        for ses in derivatives_dir.glob(f"sub-{participant_label}/ses-*"):
+            ses_id = ses.name.split("-")[-1]
+            dwi, grad = [
+                QSIPREP_DWI_TEMPLATE.format(
+                    qsiprep_dir=derivatives_dir,
+                    participant_label=participant_label,
+                    session=ses_id,
+                    extension=extension,
+                )
+                for extension in ["nii.gz", "b"]
+            ]
+            tensor = TENSOR_METRICS_FILES_TEMPLATE.format(
+                dmriprep_dir=derivatives_dir,
+                participant_label=participant_label,
+                session=ses_id,
+                metric="tensor",
+            )
+            tensor = dwi2tensor(dwi, grad, Path(tensor))
+            tensor2metric(
+                tensor, derivatives_dir, participant_label, ses_id, metrics
+            )
 
 
 def parcellate_tensors(

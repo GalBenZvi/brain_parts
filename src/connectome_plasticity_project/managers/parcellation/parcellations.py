@@ -20,6 +20,9 @@ from connectome_plasticity_project.managers.parcellation.utils import (
 )
 from connectome_plasticity_project.managers.parcellation.utils import at_ants
 from connectome_plasticity_project.managers.parcellation.utils import (
+    estimate_tensors,
+)
+from connectome_plasticity_project.managers.parcellation.utils import (
     freesurfer_anatomical_parcellation,
 )
 from connectome_plasticity_project.managers.parcellation.utils import (
@@ -37,6 +40,7 @@ class Parcellation:
     #: Default output names
     DMRIPREP_NAME = "dmriprep"
     FMRIPREP_NAME = "fmriprep"
+    QSIPREP_NAME = "qsiprep"
     FREESURFER_NAME = "freesurfer_longitudinal"
 
     #: Dmri tensor-derived metrics
@@ -281,6 +285,7 @@ class Parcellation:
         parcellation_scheme: str,
         cropped_to_gm: bool = True,
         force: bool = False,
+        analysis_type: str = "dmriprep",
         np_operation: str = "nanmean",
     ) -> pd.DataFrame:
         """Parcellates tensor-derived metrics according to *parcellation_scheme*
@@ -297,13 +302,15 @@ class Parcellation:
         """
         parcels = self.parcellations.get(parcellation_scheme).get("parcels")
         parcellations = self.register_parcellation_scheme(
-            "dmriprep", parcellation_scheme, cropped_to_gm
+            analysis_type, parcellation_scheme, cropped_to_gm
         )
         multi_column = pd.MultiIndex.from_product(
             [parcels.index, self.TENSOR_METRICS]
         )
+        if analysis_type == "qsiprep":
+            estimate_tensors(parcellations, self.qsiprep_dir, multi_column)
         return parcellate_tensors(
-            self.dmriprep_dir,
+            self.locate_outputs(analysis_type),
             multi_column,
             parcellations,
             parcels,
@@ -360,6 +367,18 @@ class Parcellation:
             *fmriprep* outputs' directory.
         """
         return self.locate_outputs("fmriprep")
+
+    @property
+    def qsiprep_dir(self) -> Path:
+        """
+        Locates the location of *qsiprep* outputs under *self.base_dir*
+
+        Returns
+        -------
+        Path
+            *qsiprep* outputs' directory.
+        """
+        return self.locate_outputs("qsiprep")
 
     @property
     def freesurfer_dir(self) -> Path:

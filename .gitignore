@@ -80,6 +80,7 @@ docs/_build
 data/*
 src/connectome_plasticity_project/utils/pylabber.py
 src/connectome_plasticity_project/statistics
+*.csv
 
 # mat and nipype's outputs
 *.nii*
