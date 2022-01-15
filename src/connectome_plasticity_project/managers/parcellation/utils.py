@@ -4,8 +4,10 @@ import warnings
 from pathlib import Path
 
 import nibabel as nib
+import numpy as np
 import pandas as pd
 import tqdm
+from nilearn.image import resample_to_img
 from nipype.interfaces.ants import ApplyTransforms
 from nipype.interfaces.freesurfer import CALabel
 from nipype.interfaces.freesurfer import MRIsCALabel
@@ -379,15 +381,26 @@ def parcellate_image(
     pd.Series
         The mean value of *image* in each *atlas* parcel.
     """
-    atlas_data = nib.load(atlas).get_fdata()
+    atlas_data = (
+        nib.load(atlas).get_fdata()
+        if isinstance(atlas, Path)
+        else atlas.get_fdata()
+    )
     data = nib.load(image).get_fdata()
     out = pd.Series(index=parcels.index)
-    for i in parcels.index:
-        label = parcels.loc[i, "Label"]
-        mask = atlas_data == label
-        out.loc[i] = eval(f"np.{np_operation}(data[mask])")
-
-    return out
+    try:
+        for i in parcels.index:
+            label = parcels.loc[i, "Label"]
+            mask = atlas_data == label
+            out.loc[i] = eval(f"np.{np_operation}(data[mask])")
+        return out
+    except IndexError:
+        atlas = resample_to_img(
+            nib.load(atlas),
+            nib.load(image),
+            interpolation="nearest",
+        )
+        return parcellate_image(atlas, image, parcels, np_operation)
 
 
 def parcellate_subject_tensors(
