@@ -78,7 +78,15 @@ docs/_build
 
 # Sensitive data
 data/*
-
+src/connectome_plasticity_project/utils/pylabber.py
+src/connectome_plasticity_project/statistics
+*.csv
+extract_tracts.py
+extract_tracts_old_studies.py
+misc.txt
 # mat and nipype's outputs
 *.nii*
 *.mat
+
+# LaTeX
+*.tex

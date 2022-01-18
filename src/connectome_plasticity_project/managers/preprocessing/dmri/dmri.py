@@ -36,7 +36,8 @@ class DmriManager:
         )
 
     def check_subject(
-        self, participant_id: str, min_sessions: int = 2
+        self,
+        participant_id: str,
     ) -> bool:
         """
         Checks whether a participant have alreadt been processed or not
@@ -56,14 +57,10 @@ class DmriManager:
             self.destination / "dmriprep" / f"sub-{participant_id}"
         )
         sessions = [s for s in pariticpant_raw.glob("ses-*/dwi")]
-        if len(sessions) < min_sessions:
-            return True
         final_outputs = [
             f for f in participant_destination.glob("ses-*/dwi/*space-anat*")
         ]
-        if len(final_outputs) > 0:
-            return True
-        return False
+        return len(final_outputs) > 0, len(sessions)
 
     def process_participant(self, participant_id: str):
         """
@@ -87,7 +84,7 @@ class DmriManager:
         )
         dmriprep.run()
 
-    def query_subjects(self, min_sessions: int = 2) -> pd.DataFrame:
+    def query_subjects(self) -> pd.DataFrame:
         """
         Query available subjects (whether to process them or not)
 
@@ -99,14 +96,21 @@ class DmriManager:
         subjects = sorted(
             [s.name.split("-")[-1] for s in self.bids_dir.glob("sub-*")]
         )
-        manager = pd.DataFrame(index=subjects, columns=["processed"])
+        manager = pd.DataFrame(
+            index=subjects, columns=["processed", "num_sessions"]
+        )
         for subj in subjects:
-            manager.loc[subj, "processed"] = self.check_subject(
-                subj, min_sessions
-            )
+            manager.loc[
+                subj, ["processed", "num_sessions"]
+            ] = self.check_subject(subj)
         return manager
 
-    def run(self, max_total: int = None, participant_label: list = None):
+    def run(
+        self,
+        max_total: int = None,
+        participant_label: list = None,
+        min_sessions: int = 2,
+    ):
         """
         Run *dMRIPrep* for *max_total* subjects or specific subjects declared in *participant_label*.
 
@@ -119,7 +123,8 @@ class DmriManager:
         """
         if not participant_label:
             unprocessed = self.subjects_manager[
-                ~self.subjects_manager["processed"].astype(bool)
+                (~self.subjects_manager["processed"].astype(bool))
+                & (self.subjects_manager["num_sessions"] >= min_sessions)
             ]
             max_total = max_total if max_total else (len(unprocessed) + 1)
             for i in sorted(unprocessed.index[:max_total]):

@@ -18,9 +18,7 @@ from connectome_plasticity_project.managers.preprocessing.dmri.dmri import (
 @click.argument("bids_dir", type=click.Path(exists=True))
 @click.option("-destination", "--destination", type=click.Path(), default=None)
 @click.option("-max_total", "--max_total", type=int, default=None)
-@click.option(
-    "-participant_label", "--participant_label", multiple=True, default=None
-)
+@click.option("-participant_label", "--participant_label", multiple=True, default=None)
 def main(
     bids_dir: Path,
     destination: Path = None,

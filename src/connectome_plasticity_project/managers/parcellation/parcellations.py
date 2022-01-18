@@ -1,6 +1,7 @@
 import datetime
 import logging
 import logging.config
+import os
 from pathlib import Path
 
 import pandas as pd
@@ -14,7 +15,19 @@ from connectome_plasticity_project.managers.parcellation.utils import (
 from connectome_plasticity_project.managers.parcellation.utils import (
     PARCELLATIONS,
 )
+from connectome_plasticity_project.managers.parcellation.utils import (
+    apply_mask,
+)
 from connectome_plasticity_project.managers.parcellation.utils import at_ants
+from connectome_plasticity_project.managers.parcellation.utils import (
+    estimate_tensors,
+)
+from connectome_plasticity_project.managers.parcellation.utils import (
+    freesurfer_anatomical_parcellation,
+)
+from connectome_plasticity_project.managers.parcellation.utils import (
+    group_freesurfer_metrics,
+)
 from connectome_plasticity_project.managers.parcellation.utils import (
     parcellate_tensors,
 )
@@ -27,7 +40,8 @@ class Parcellation:
     #: Default output names
     DMRIPREP_NAME = "dmriprep"
     FMRIPREP_NAME = "fmriprep"
-    FREESURFER_NAME = "freesurfer"
+    QSIPREP_NAME = "qsiprep"
+    FREESURFER_NAME = "freesurfer_longitudinal"
 
     #: Dmri tensor-derived metrics
     TENSOR_METRICS = TENSOR_METRICS
@@ -37,6 +51,10 @@ class Parcellation:
     MNI_TO_NATIVE_TRANSFORMATION = (
         "sub-{participant_label}*from-MNI*_to-T1w*_xfm.h5"
     )
+    GM_PROBABILITY = "sub-{participant_label}*_label-GM_probseg.nii.gz"
+
+    #: Default thresholding value for masking
+    MASKING_THRESHOLD = 0
     #: Default destination locations
     LOGGER_FILE = "parcellation_{timestamp}.log"
 
@@ -101,15 +119,12 @@ class Parcellation:
             An output (derivatives) directort of either *fmriprep* or *dmriprep*
         """
         anat_dir = subject_dir / "anat"
-        reference = transformation = None
+        reference = transformation = gm_mask = None
         valid = True
         if not anat_dir.exists():
             try:
                 anat_dir = [d for d in subject_dir.glob("ses-*/anat")][0]
             except IndexError:
-                logging.warn(
-                    f"Could not locate anatomical reference for subject {participant_label}."
-                )
                 valid = False
         try:
             reference = [
@@ -128,15 +143,23 @@ class Parcellation:
                     )
                 )
             ][0]
+            gm_mask = [
+                f
+                for f in anat_dir.glob(
+                    self.GM_PROBABILITY.format(
+                        participant_label=participant_label
+                    )
+                )
+            ][0]
         except IndexError:
-            logging.warn(
-                f"Could not find anatomical reference for subject {participant_label}."
-            )
             valid = False
-        return reference, transformation, valid
+        return reference, transformation, gm_mask, valid
 
     def register_parcellation_scheme(
-        self, analysis_type: str, parcellation_scheme: str
+        self,
+        analysis_type: str,
+        parcellation_scheme: str,
+        crop_to_gm: bool = True,
     ):
         """
         Register a parcellation scheme to subjects' anatomical space
@@ -157,11 +180,15 @@ class Parcellation:
             (
                 reference,
                 transformation,
+                gm_mask,
                 valid,
             ) = self.locate_anatomical_reference(
                 subject_dir, participant_label
             )
             if not valid:
+                logging.warn(
+                    f"Could not locate anatomical reference for subject {participant_label}."
+                )
                 continue
             out_file = reference.with_name(
                 reference.name.replace(
@@ -169,16 +196,97 @@ class Parcellation:
                     f"space-anat_atlas-{parcellation_scheme}",
                 )
             )
-            subjects_parcellations[participant_label] = out_file
-            if not out_file.exists():
+            out_masked = reference.with_name(
+                reference.name.replace(
+                    "desc-preproc_T1w",
+                    f"space-anat_desc-GM_atlas-{parcellation_scheme}",
+                )
+            )
+            subjects_parcellations[participant_label] = (
+                out_masked if crop_to_gm else out_file
+            )
+            if not out_file.exists() or not out_masked.exists():
                 logging.info(
                     f"Transforming {parcellation_scheme} atlas from standard to subject {participant_label}'s anatomical space."
                 )
                 at_ants(in_file, reference, transformation, out_file, nn=True)
+                apply_mask(
+                    gm_mask, out_file, out_masked, self.MASKING_THRESHOLD
+                )
+
         return subjects_parcellations
 
+    def generate_freesurfer_metrics(self, parcellation_scheme: str):
+        """
+        mris_ca_label -sdir ../../freesurfer/ sub-14 lh surf/lh.sphere.reg /media/groot/Data/Parcellations/MNI/Brainnetome_FS/lh.BN_Atlas.gcs lh.bn.annot
+        mris_anatomical_stats -a label/lh.bn.annot -b sub-14 lh
+
+
+
+        Parameters
+        ----------
+        parcellation_scheme : str
+            A string representing existing key within *self.parcellations*.
+        """
+        gcs, gcs_subcortex, ctab = [
+            self.parcellations.get(parcellation_scheme).get(key)
+            for key in ["gcs", "gcs_subcortex", "ctab"]
+        ]
+        freesurfer_metrics = {}
+        if not gcs:
+            raise (
+                f"No available Freesurfer .gcs file located for parcellation scheme {parcellation_scheme}!"
+            )
+        for subj in self.freesurfer_dir.glob("sub-*"):
+            try:
+                stats = freesurfer_anatomical_parcellation(
+                    self.freesurfer_dir, subj.name, parcellation_scheme, gcs
+                )
+                stats["subcortex"] = {}
+                # stats["table"] =
+                freesurfer_metrics[subj.name] = stats
+            except:
+                logging.error(
+                    f"Failed parcellating {subj.name} Freesurfer-derived data..."
+                )
+                continue
+        return freesurfer_metrics
+
+    def collect_freesurfer_metrics(
+        self, parcellation_scheme: str, force: bool = True
+    ) -> dict:
+        """
+        Utilizes Freesurfer's aparcstats2table to group different Freesurfer-derived across subjects according to *parcellation_scheme*
+
+        Parameters
+        ----------
+        parcellation_scheme : str
+            A string representing existing key within *self.parcellations*.
+
+        Returns
+        -------
+        dict
+            A dictionary containing the location of all files with freesurfer-derived metrics stored in them.
+        """
+        destination = self.destination / parcellation_scheme / "smri" / "tmp"
+        subjects_metrics = self.generate_freesurfer_metrics(
+            parcellation_scheme
+        )
+        group_wise_data = group_freesurfer_metrics(
+            list(subjects_metrics.keys()),
+            destination,
+            parcellation_scheme,
+            force,
+        )
+        return group_wise_data
+
     def collect_tensors_metrics(
-        self, parcellation_scheme: str
+        self,
+        parcellation_scheme: str,
+        cropped_to_gm: bool = True,
+        force: bool = False,
+        analysis_type: str = "dmriprep",
+        np_operation: str = "nanmean",
     ) -> pd.DataFrame:
         """Parcellates tensor-derived metrics according to *parcellation_scheme*
 
@@ -194,20 +302,30 @@ class Parcellation:
         """
         parcels = self.parcellations.get(parcellation_scheme).get("parcels")
         parcellations = self.register_parcellation_scheme(
-            "dmriprep", parcellation_scheme
+            analysis_type, parcellation_scheme, cropped_to_gm
         )
         multi_column = pd.MultiIndex.from_product(
             [parcels.index, self.TENSOR_METRICS]
         )
+        if analysis_type == "qsiprep":
+            estimate_tensors(parcellations, self.qsiprep_dir, multi_column)
         return parcellate_tensors(
-            self.dmriprep_dir,
+            self.locate_outputs(analysis_type),
             multi_column,
             parcellations,
             parcels,
             parcellation_scheme,
+            cropped_to_gm,
+            force,
+            np_operation,
         )
 
-    def run_all(self, parcellation_scheme: str):
+    def run_all(
+        self,
+        parcellation_scheme: str,
+        force: bool = False,
+        operation: str = "nanmean",
+    ):
         """
         Run all available parcellation methods
 
@@ -218,9 +336,10 @@ class Parcellation:
         """
         target = self.destination / parcellation_scheme
         for out_file, function in zip(
-            ["dmri/tensors.csv"], [self.collect_tensors_metrics]
+            [f"dmri/tensors_meas-{operation.replace('nan','')}.csv"],
+            [self.collect_tensors_metrics],
         ):
-            data = function(parcellation_scheme)
+            data = function(parcellation_scheme, force=force)
             destination = target / out_file
             destination.parent.mkdir(exist_ok=True, parents=True)
             data.to_csv(destination)
@@ -250,6 +369,18 @@ class Parcellation:
         return self.locate_outputs("fmriprep")
 
     @property
+    def qsiprep_dir(self) -> Path:
+        """
+        Locates the location of *qsiprep* outputs under *self.base_dir*
+
+        Returns
+        -------
+        Path
+            *qsiprep* outputs' directory.
+        """
+        return self.locate_outputs("qsiprep")
+
+    @property
     def freesurfer_dir(self) -> Path:
         """
         Locates the location of *freesurfer* outputs under *self.base_dir*
@@ -259,4 +390,7 @@ class Parcellation:
         Path
             *freesurfer* outputs' directory.
         """
-        return self.locate_outputs("freesurfer")
+        freesurfer_dir = self.locate_outputs("freesurfer")
+        if freesurfer_dir.exists():
+            os.environ["SUBJECTS_DIR"] = str(freesurfer_dir)
+        return freesurfer_dir
