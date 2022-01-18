@@ -162,6 +162,40 @@ class SubjectsManager:
                     )
         return relevant_subjects
 
+    def query_available_bids(self, relevant_subjects: pd.DataFrame):
+        available = self.bids_ids if self.bids_dir else None
+        for _, row in self.mri_table.iterrows():
+            notes, serial, scan, id_number = [
+                row[col] for col in ["notes", "Serial", "SCAN FILE", "ID"]
+            ]
+            if (
+                id_number in available
+                and id_number not in relevant_subjects["id"].values
+            ):
+                for key, value in self.GROUP_IDENTIFIERS.items():
+                    if ((key in str(notes)) | (key in str(serial))) & pd.notna(
+                        scan
+                    ):
+                        group = value
+                        break
+                    else:
+                        group = "unknown"
+                for raw_label, label in self.CONDITION_IDENTIFIERS.items():
+                    if (raw_label in str(notes)) | (raw_label in str(serial)):
+                        condition = label
+                        break
+                    else:
+                        condition = "unknown"
+                transformed_row = transform_row(
+                    row,
+                    origin="mri_table",
+                    replacements=REPLACEMENT_COLUMNS,
+                )
+                transformed_row["group"] = group
+                transformed_row["condition"] = condition
+                relevant_subjects = relevant_subjects.append(transformed_row)
+        return relevant_subjects
+
     def query_database_ids(
         self, relevant_subjects: pd.DataFrame
     ) -> pd.DataFrame:
@@ -196,6 +230,27 @@ class SubjectsManager:
                 missing_df = missing_df.append(row)
         return combined_df, missing_df
 
+    def get_bids_ids(self) -> list[str]:
+        """
+        Get the ID number for subjects located at *self.bids_dir*
+
+        Returns
+        -------
+        list[str]
+            ID numbers of subjects at *self.bids_dir*
+        """
+        database_ids = [
+            i.name.split("-")[-1] for i in self.bids_dir.glob("sub-*")
+        ]
+        return (
+            self.databse_ids.reset_index()
+            .set_index("ID")
+            .loc[
+                [i for i in database_ids if i in self.databse_ids["ID"].values]
+            ]["ID Number"]
+            .values
+        )
+
     def query_bids(self, valids_subject: pd.DataFrame):
         """
         Combines available subjects with *self.bids_dir* if given.
@@ -209,12 +264,11 @@ class SubjectsManager:
         bids_available = [
             sub.name.split("-")[-1] for sub in self.bids_dir.glob("sub-*")
         ]
+        valids_subject["rawdata"] = False
         for i in valids_subject.index:
             database_id = valids_subject.loc[i, "database_id"]
             if database_id in bids_available:
                 valids_subject.loc[i, "rawdata"] = True
-            else:
-                valids_subject.loc[i, "rawdata"] = False
         return valids_subject
 
     def validate_and_fix_bids(self):
@@ -239,7 +293,7 @@ class SubjectsManager:
         pd.DataFrame
             Dataframes with valid and missing participants.
         """
-        relevant_subjects = self.query_mri_table()
+        relevant_subjects = self.query_available_bids(self.query_mri_table())
         valid, missing = self.query_database_ids(relevant_subjects)
         if self.bids_dir:
             valid = self.query_bids(valid)
@@ -384,3 +438,15 @@ class SubjectsManager:
             A dataframe with subjects' database-related identifiers
         """
         return self.get_database_ids().set_index("ID Number")
+
+    @property
+    def bids_ids(self) -> list:
+        """
+        Get the ID number for subjects located at *self.bids_dir*
+
+        Returns
+        -------
+        list[str]
+            ID numbers of subjects at *self.bids_dir*
+        """
+        return self.get_bids_ids()
