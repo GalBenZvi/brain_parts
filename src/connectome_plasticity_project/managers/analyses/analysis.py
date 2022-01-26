@@ -1,14 +1,26 @@
 from pathlib import Path
-from typing import Pattern
+
+import pandas as pd
+
+from connectome_plasticity_project.managers.analyses.messages import (
+    PARCELLATION_ERROR,
+)
+from connectome_plasticity_project.managers.parcellation.utils import (
+    PARCELLATIONS,
+)
 
 
-class Analysis:
+class AnalysisResults:
     """
     A "top-level" object to manage an analysis-specific derivatives' directory.
     """
 
     #: Suffixes and prefixes
     SUBJECT_PREFIX = "sub"
+    SESSION_PREFIX = "ses"
+
+    #: Available parcellation schemes
+    PARCELLATIONS = PARCELLATIONS
     #: Files' templates
     ANATOMICAL_REFERENCE = "sub-{participant_label}*_desc-preproc_T1w.nii.gz"
     MNI_TO_NATIVE_TRANSFORMATION = (
@@ -19,7 +31,67 @@ class Analysis:
     def __init__(self, base_dir: Path) -> None:
         self.base_dir = Path(base_dir)
 
-    def query_analysis_subjects(self, pattern: str = "sub-*") -> dict:
+    def to_dataframe(self, parcellation_scheme: str) -> pd.DataFrame:
+        """
+        Parse available results to atlas stated as *parcellation_scheme*
+
+        Parameters
+        ----------
+        parcellation_scheme : str
+            A string representing an available parcellation atlas.
+
+        Returns
+        -------
+        pd.DataFrame
+            A Dataframe that hold parsed information derived from the analysis' results.
+
+        Raises
+        ------
+        NotImplementedError
+            In case *to_dataframe* method was not implemented for specific analysis.
+        """
+        if parcellation_scheme not in self.PARCELLATIONS:
+            raise ValueError(
+                PARCELLATION_ERROR.format(
+                    parcellation_scheme=parcellation_scheme,
+                    available_parcellations=", ".join(
+                        self.PARCELLATIONS.keys()
+                    ),
+                )
+            )
+        raise NotImplementedError
+
+    def register_parcellation_scheme(
+        self,
+        parcellation_scheme: str,
+    ):
+        """
+        Register a parcellation scheme to subjects' space
+
+        Parameters
+        ----------
+        parcellation_scheme : str
+            A string representing an available parcellation atlas.
+
+        Raises
+        ------
+        NotImplementedError
+            In case *register_parcellation_scheme* method was not implemented for specific analysis.
+        """
+        if parcellation_scheme not in self.PARCELLATIONS:
+            raise ValueError(
+                PARCELLATION_ERROR.format(
+                    parcellation_scheme=parcellation_scheme,
+                    available_parcellations=", ".join(
+                        self.PARCELLATIONS.keys()
+                    ),
+                )
+            )
+        raise NotImplementedError
+
+    def query_analysis_subjects(
+        self, subject_pattern: str = "sub-*", session_pattern: str = "ses-*"
+    ) -> dict:
         """
         Query *self.base_dir* for available subjects according to *pattern*
 
@@ -36,9 +108,11 @@ class Analysis:
         subjects = {
             subj.name: [
                 ses.name
-                for ses in sorted(self.base_dir.glob(f"{subj.name}/ses-*"))
+                for ses in sorted(
+                    self.base_dir.glob(f"{subj.name}/{session_pattern}")
+                )
             ]
-            for subj in sorted(self.base_dir.glob(pattern))
+            for subj in sorted(self.base_dir.glob(subject_pattern))
             if subj.is_dir()
         }
         return subjects
