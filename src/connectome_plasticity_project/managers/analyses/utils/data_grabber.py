@@ -1,8 +1,12 @@
 from pathlib import Path
 from typing import Union
 
-from connectome_plasticity_project.managers.analyses.messages import INVALID_PATTERN
-from connectome_plasticity_project.managers.analyses.utils.templates import TEMPLATES
+from connectome_plasticity_project.managers.analyses.messages import (
+    INVALID_PATTERN,
+)
+from connectome_plasticity_project.managers.analyses.utils.templates import (
+    TEMPLATES,
+)
 
 
 class DataGrabber:
