@@ -1,68 +1,66 @@
 from pathlib import Path
 
 import pandas as pd
+from matplotlib.style import available
+from sklearn.metrics import pair_confusion_matrix
 
 from connectome_plasticity_project.managers.analyses.analysis import (
     AnalysisResults,
 )
+from connectome_plasticity_project.managers.analyses.utils.data_grabber import (
+    DataGrabber,
+)
+from connectome_plasticity_project.managers.analyses.utils.parcellations import (
+    PARCELLATIONS,
+)
+from connectome_plasticity_project.managers.analyses.utils.templates import (
+    generate_atlas_file_name,
+)
 
 
 class DmriprepResults(AnalysisResults):
-    def __init__(self, base_dir: Path, longitudinal: bool = True) -> None:
+    # Queries
+    NATIVE_PARCELLATION_QUERY = ["Done", "Missing"]
+
+    def __init__(
+        self,
+        base_dir: Path,
+        longitudinal: bool = True,
+        available_parcellations: dict = PARCELLATIONS,
+    ) -> None:
         super().__init__(base_dir)
         self.longitudinal = longitudinal
+        self.data_grabber = DataGrabber(base_dir, analysis_type="dmriprep")
+        self.available_parcellations = available_parcellations
 
-    def locate_anatomical_references(
-        self, participant_label: str, sessions: list
+    def register_parcellation_to_anatomical(
+        self,
+        parcellation_scheme: str,
+        parcellation_file: Path,
+        participant_label: str,
+        sessions: list,
+        crop_to_gm: True,
     ):
-        """
-        Locates subjects' preprocessed anatomical references
-
-        Parameters
-        ----------
-        output_dir : Path
-            An output (derivatives) directory of *dmriprep*
-        """
-        anat_dir = (
-            self.base_dir / participant_label / "anat"
-            if len(sessions) > 1
-            else self.base_dir / participant_label / sessions[0] / "anat"
+        (
+            references,
+            directory,
+            prefix,
+        ) = self.data_grabber.locate_anatomical_references(
+            participant_label, sessions
         )
-        reference = transformation = gm_mask = None
-        valid = True
-        if not anat_dir.exists():
-            try:
-                anat_dir = [d for d in subject_dir.glob("ses-*/anat")][0]
-            except IndexError:
-                valid = False
-        try:
-            reference = [
-                f
-                for f in anat_dir.glob(
-                    self.ANATOMICAL_REFERENCE.format(
-                        participant_label=participant_label
-                    )
-                )
-            ][0]
-            transformation = [
-                f
-                for f in anat_dir.glob(
-                    self.MNI_TO_NATIVE_TRANSFORMATION.format(
-                        participant_label=participant_label
-                    )
-                )
-            ][0]
-            gm_mask = [
-                f
-                for f in anat_dir.glob(
-                    self.GM_PROBABILITY.format(
-                        participant_label=participant_label
-                    )
-                )
-            ][0]
-        except IndexError:
-            valid = False
-        return reference, transformation, gm_mask, valid
+        out_file = generate_atlas_file_name(
+            references.get("anatomical_reference"),
+            parcellation_scheme,
+            space="anat",
+        )
+        out_masked = generate_atlas_file_name(
+            references.get("anatomical_reference"),
+            parcellation_scheme,
+            space="anat",
+            desc="GM",
+        )
+
+    # def register_single_subject_parcellation(self,parcellation_file:Path,subject:str):
 
     def register_parcellation_scheme(
         self, parcellation_scheme: str, crop_to_gm: bool = True
@@ -77,6 +75,11 @@ class DmriprepResults(AnalysisResults):
         crop_to_gm : bool, optional
             Whether to crop the resulting register parcellation atlas to gray matter, by default True
         """
+        parcellation = self.get_parcellation(parcellation_scheme)
+        parcellation_file = parcellation.get("path")
+        dataset_query = pd.DataFrame(columns=self.NATIVE_PARCELLATION_QUERY)
+        # for subject,sessions in self.subjects.items():
+        #     for session in sessions:
 
         return
 

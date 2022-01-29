@@ -43,11 +43,18 @@ class DataGrabber:
             Subject's anatomical derivatives' directory
         """
         if len(sessions) > 1:
-            anat_dir = self.base_dir / participant_label / "anat"
-            prefix = participant_label + "_"
+            anat_dir = self.base_dir / f"sub-{participant_label}" / "anat"
+            prefix = f"sub-{participant_label}" + "_"
         else:
-            anat_dir = self.base_dir / participant_label / sessions[0] / "anat"
-            prefix = participant_label + "_" + sessions[0] + "_"
+            anat_dir = (
+                self.base_dir
+                / f"sub-{participant_label}"
+                / f"ses-{sessions[0]}"
+                / "anat"
+            )
+            prefix = (
+                f"sub-{participant_label}" + "_" + f"ses-{sessions[0]}" + "_"
+            )
         return anat_dir, prefix
 
     def search_for_file(
@@ -112,4 +119,4 @@ class DataGrabber:
             pattern = prefix + self.templates[key].value
             result = self.search_for_file(anat_dir, pattern, None)
             references[key.lower()] = result
-        return references
+        return references, anat_dir, prefix

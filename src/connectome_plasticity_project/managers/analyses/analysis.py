@@ -18,9 +18,6 @@ class AnalysisResults:
     #: Suffixes and prefixes
     SUBJECT_PREFIX = "sub"
     SESSION_PREFIX = "ses"
-
-    #: Available parcellation schemes
-    PARCELLATIONS = PARCELLATIONS
     #: Files' templates
     ANATOMICAL_REFERENCE = "sub-{participant_label}*_desc-preproc_T1w.nii.gz"
     MNI_TO_NATIVE_TRANSFORMATION = (
@@ -28,8 +25,37 @@ class AnalysisResults:
     )
     GM_PROBABILITY = "sub-{participant_label}*_label-GM_probseg.nii.gz"
 
-    def __init__(self, base_dir: Path) -> None:
+    def __init__(
+        self, base_dir: Path, available_parcellations: dict = PARCELLATIONS
+    ) -> None:
         self.base_dir = Path(base_dir)
+        self.available_parcellations = available_parcellations
+
+    def get_parcellation(self, parcellation_scheme: str) -> dict:
+        """
+        Locates a parcellation scheme in *self.available_parcellations* and return its corresponding information
+
+        Parameters
+        ----------
+        parcellation_scheme : str
+            A string representing a parcellation scheme
+
+        Returns
+        -------
+        dict
+            A dictionary containing available information and files associated with *parcellation_scheme*
+        """
+        parcellation = self.available_parcellations.get(parcellation_scheme)
+        if not parcellation:
+            raise ValueError(
+                PARCELLATION_ERROR.format(
+                    parcellation_scheme=parcellation_scheme,
+                    available_parcellations=", ".join(
+                        self.PARCELLATIONS.keys()
+                    ),
+                )
+            )
+        return parcellation
 
     def to_dataframe(self, parcellation_scheme: str) -> pd.DataFrame:
         """
@@ -50,15 +76,6 @@ class AnalysisResults:
         NotImplementedError
             In case *to_dataframe* method was not implemented for specific analysis.
         """
-        if parcellation_scheme not in self.PARCELLATIONS:
-            raise ValueError(
-                PARCELLATION_ERROR.format(
-                    parcellation_scheme=parcellation_scheme,
-                    available_parcellations=", ".join(
-                        self.PARCELLATIONS.keys()
-                    ),
-                )
-            )
         raise NotImplementedError
 
     def register_parcellation_scheme(
@@ -78,15 +95,6 @@ class AnalysisResults:
         NotImplementedError
             In case *register_parcellation_scheme* method was not implemented for specific analysis.
         """
-        if parcellation_scheme not in self.PARCELLATIONS:
-            raise ValueError(
-                PARCELLATION_ERROR.format(
-                    parcellation_scheme=parcellation_scheme,
-                    available_parcellations=", ".join(
-                        self.PARCELLATIONS.keys()
-                    ),
-                )
-            )
         raise NotImplementedError
 
     def query_analysis_subjects(
@@ -106,8 +114,8 @@ class AnalysisResults:
             A dictionary with keys of subjects and values of session\s.
         """
         subjects = {
-            subj.name: [
-                ses.name
+            subj.name.replace("sub-", ""): [
+                ses.name.replace("ses-", "")
                 for ses in sorted(
                     self.base_dir.glob(f"{subj.name}/{session_pattern}")
                 )
