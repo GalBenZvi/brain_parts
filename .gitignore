@@ -85,6 +85,8 @@ extract_tracts.py
 extract_tracts_old_studies.py
 misc.txt
 prereg
+run_qsiprep.py
+
 # mat and nipype's outputs
 *.nii*
 *.mat

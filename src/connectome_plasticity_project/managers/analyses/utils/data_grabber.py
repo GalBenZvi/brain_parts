@@ -1,6 +1,8 @@
 from pathlib import Path
 from typing import Union
 
+import bids
+
 from connectome_plasticity_project.managers.analyses.messages import (
     INVALID_PATTERN,
 )
@@ -22,6 +24,9 @@ class DataGrabber:
             A string representing the analysis that is stored in *base_dir*
         """
         self.base_dir = base_dir
+        self.layout = bids.BIDSLayout(
+            base_dir, derivatives=True, validate=False
+        )
         self.templates = TEMPLATES.get(analysis_type)
 
     def locate_anatomical_directory(
