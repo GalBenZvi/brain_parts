@@ -17,11 +17,23 @@ class DmriPrep(Enum):
     NATIVE_EPI_REFERENCE = "{session}/dwi/*space-orig_desc-preproc_epiref.nii*"
 
 
+class QsiPrep(Enum):
+    ANATOMICAL_TEMPLATES = [
+        "ANATOMICAL_REFERENCE",
+        "MNI_TO_NATIVE_TRANSFORMATION",
+        "GM_PROBABILITY",
+    ]
+    ANATOMICAL_REFERENCE = "*desc-preproc_T1w.nii*"
+    MNI_TO_NATIVE_TRANSFORMATION = "*from-MNI*_to-T1w_mode-image_xfm.h5"
+    GM_PROBABILITY = "*label-GM_probseg.nii*"
+    NATIVE_EPI_REFERENCE = "{session}/dwi/*dwiref.nii*"
+
+
 def generate_atlas_file_name(
     reference: Path,
     parcellation_scheme: str,
     space: str = "anat",
-    desc: str = None,
+    label: str = None,
     replacement: str = "desc-preproc_T1w",
 ) -> Path:
     """
@@ -45,19 +57,19 @@ def generate_atlas_file_name(
     Path
         Path to a native parcellation according to input specifications.
     """
-    if not desc:
+    if not label:
         return reference.with_name(
             reference.name.replace(
-                replacement, f"space-{space}_atlas-{parcellation_scheme}"
+                replacement, f"space-{space}_desc-{parcellation_scheme}_atlas"
             )
         )
     else:
         return reference.with_name(
             reference.name.replace(
                 replacement,
-                f"space-{space}_desc-{desc}_atlas-{parcellation_scheme}",
+                f"space-{space}_label-{label}_desc-{parcellation_scheme}_atlas",
             )
         )
 
 
-TEMPLATES = {"dmriprep": DmriPrep}
+TEMPLATES = {"dmriprep": DmriPrep, "qsiprep": QsiPrep}
