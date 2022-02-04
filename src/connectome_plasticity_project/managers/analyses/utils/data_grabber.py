@@ -9,6 +9,9 @@ from connectome_plasticity_project.managers.analyses.messages import (
 from connectome_plasticity_project.managers.analyses.utils.templates import (
     TEMPLATES,
 )
+from connectome_plasticity_project.managers.analyses.utils.templates import (
+    generate_atlas_file_name,
+)
 
 
 class DataGrabber:
@@ -23,14 +26,19 @@ class DataGrabber:
         analysis_type : str
             A string representing the analysis that is stored in *base_dir*
         """
-        self.base_dir = base_dir
+        self.base_dir = Path(base_dir)
         self.layout = bids.BIDSLayout(
             base_dir, derivatives=True, validate=False
         )
         self.templates = TEMPLATES.get(analysis_type)
+        self.longitudinal_sensitive = (
+            self.templates.LONGITUDINAL_SENSITIVE.value
+        )
 
     def locate_anatomical_directory(
-        self, participant_label: str, sessions: list
+        self,
+        participant_label: str,
+        sessions: list,
     ) -> Path:
         """
         Locates subject's anatomical derivatives' directory
@@ -47,7 +55,7 @@ class DataGrabber:
         Path
             Subject's anatomical derivatives' directory
         """
-        if len(sessions) > 1:
+        if len(sessions) > 1 or not self.longitudinal_sensitive:
             anat_dir = self.base_dir / f"sub-{participant_label}" / "anat"
             prefix = f"sub-{participant_label}" + "_"
         else:
@@ -125,3 +133,14 @@ class DataGrabber:
             result = self.search_for_file(anat_dir, pattern, None)
             references[key.lower()] = result
         return references, anat_dir, prefix
+
+    def build_parcellation_naming(
+        self, parcellation_scheme: str, references: dict, label: str = None
+    ):
+        out_file = generate_atlas_file_name(
+            references.get("anatomical_reference"),
+            parcellation_scheme,
+            space="anat",
+            label=label,
+        )
+        return out_file

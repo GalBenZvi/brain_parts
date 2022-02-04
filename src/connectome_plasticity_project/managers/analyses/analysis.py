@@ -18,12 +18,22 @@ class AnalysisResults:
     #: Suffixes and prefixes
     SUBJECT_PREFIX = "sub"
     SESSION_PREFIX = "ses"
+
     #: Files' templates
     ANATOMICAL_REFERENCE = "sub-{participant_label}*_desc-preproc_T1w.nii.gz"
     MNI_TO_NATIVE_TRANSFORMATION = (
         "sub-{participant_label}*from-MNI*_to-T1w*_xfm.h5"
     )
     GM_PROBABILITY = "sub-{participant_label}*_label-GM_probseg.nii.gz"
+
+    #: Masking threshold
+    PROBSEG_THRESHOLD = 0.01
+
+    #: Parcellation transform and masking default arguments
+    TRANSFORM_KWARGS = {
+        "interpolation": "NearestNeighbor",
+    }
+    MASKER_KWARGS = {"output_datatype": "int"}
 
     def __init__(
         self, base_dir: Path, available_parcellations: dict = PARCELLATIONS
