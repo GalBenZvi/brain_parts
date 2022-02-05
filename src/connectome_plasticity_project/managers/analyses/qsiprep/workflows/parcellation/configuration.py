@@ -4,20 +4,16 @@ Configurations for *parcellation* pipeline
 
 INPUT_NODE_FIELDS = [
     "base_dir",
+    "analysis_type",
     "participant_label",
     "sessions",
     "probability_masking_threshold",
     "parcellation_scheme",
     "parcellation_image",
 ]
-OUTPUT_NODE_FIELDS = ["whole_brain_parcellation", "gm_cropped_parcellation"]
 
-DATA_GRABBER_KWARGS = dict(
-    input_names=["base_dir", "analysis_type"],
-    output_names=["data_grabber"],
-)
 FILES_QUERY_KWARGS = dict(
-    input_names=["data_grabber", "participant_label", "sessions"],
+    input_names=["base_dir", "participant_label", "sessions", "analysis_type"],
     output_names=[
         "anatomical_reference",
         "mni_to_native_transformation",
@@ -26,9 +22,10 @@ FILES_QUERY_KWARGS = dict(
 )
 NATIVE_PARCELLATION_NAMING_KWARGS = dict(
     input_names=[
-        "data_grabber",
+        "base_dir",
         "reference",
         "parcellation_scheme",
+        "analysis_type",
     ],
     output_names=["whole_brain", "gm_cropped"],
 )
@@ -36,3 +33,4 @@ NATIVE_PARCELLATION_NAMING_KWARGS = dict(
 ANTS_APPLY_TRANSFORM_KWARGS = dict(interpolation="NearestNeighbor")
 
 PROBSEG_TO_MASK_KWARGS = dict(direction="below")
+CROP_TO_MASK_KWARGS = dict(output_datatype="int")
