@@ -2,12 +2,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from connectome_plasticity_project.managers.analyses.messages import (
-    PARCELLATION_ERROR,
-)
-from connectome_plasticity_project.managers.parcellation.utils import (
-    PARCELLATIONS,
-)
+from connectome_plasticity_project.managers.analyses.messages import PARCELLATION_ERROR
+from connectome_plasticity_project.managers.parcellation.utils import PARCELLATIONS
 
 
 class AnalysisResults:
@@ -21,9 +17,7 @@ class AnalysisResults:
 
     #: Files' templates
     ANATOMICAL_REFERENCE = "sub-{participant_label}*_desc-preproc_T1w.nii.gz"
-    MNI_TO_NATIVE_TRANSFORMATION = (
-        "sub-{participant_label}*from-MNI*_to-T1w*_xfm.h5"
-    )
+    MNI_TO_NATIVE_TRANSFORMATION = "sub-{participant_label}*from-MNI*_to-T1w*_xfm.h5"
     GM_PROBABILITY = "sub-{participant_label}*_label-GM_probseg.nii.gz"
 
     #: Masking threshold
@@ -60,9 +54,7 @@ class AnalysisResults:
             raise ValueError(
                 PARCELLATION_ERROR.format(
                     parcellation_scheme=parcellation_scheme,
-                    available_parcellations=", ".join(
-                        self.PARCELLATIONS.keys()
-                    ),
+                    available_parcellations=", ".join(self.PARCELLATIONS.keys()),
                 )
             )
         return parcellation
@@ -126,9 +118,7 @@ class AnalysisResults:
         subjects = {
             subj.name.replace("sub-", ""): [
                 ses.name.replace("ses-", "")
-                for ses in sorted(
-                    self.base_dir.glob(f"{subj.name}/{session_pattern}")
-                )
+                for ses in sorted(self.base_dir.glob(f"{subj.name}/{session_pattern}"))
             ]
             for subj in sorted(self.base_dir.glob(subject_pattern))
             if subj.is_dir()
@@ -155,17 +145,13 @@ class AnalysisResults:
         Path
             Path to subject's anatomical reference
         """
-        participant_label = participant_label.replace(
-            f"{self.SUBJECT_PREFIX}-", ""
-        )
+        participant_label = participant_label.replace(f"{self.SUBJECT_PREFIX}-", "")
         anatomical_directory = (
             self.base_dir
             / f"{self.SUBJECT_PREFIX}-{participant_label}"
             / anatomical_derivatives_pattern
         )
-        pattern = self.ANATOMICAL_REFERENCE.format(
-            participant_label=participant_label
-        )
+        pattern = self.ANATOMICAL_REFERENCE.format(participant_label=participant_label)
         reference = [f for f in anatomical_directory.glob(pattern)]
         try:
             return reference[0]

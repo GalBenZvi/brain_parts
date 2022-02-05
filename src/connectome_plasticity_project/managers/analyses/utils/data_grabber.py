@@ -3,12 +3,8 @@ from typing import Union
 
 import bids
 
-from connectome_plasticity_project.managers.analyses.messages import (
-    INVALID_PATTERN,
-)
-from connectome_plasticity_project.managers.analyses.utils.templates import (
-    TEMPLATES,
-)
+from connectome_plasticity_project.managers.analyses.messages import INVALID_PATTERN
+from connectome_plasticity_project.managers.analyses.utils.templates import TEMPLATES
 from connectome_plasticity_project.managers.analyses.utils.templates import (
     generate_atlas_file_name,
 )
@@ -27,13 +23,9 @@ class DataGrabber:
             A string representing the analysis that is stored in *base_dir*
         """
         self.base_dir = Path(base_dir)
-        self.layout = bids.BIDSLayout(
-            base_dir, derivatives=True, validate=False
-        )
+        self.layout = bids.BIDSLayout(base_dir, derivatives=True, validate=False)
         self.templates = TEMPLATES.get(analysis_type)
-        self.longitudinal_sensitive = (
-            self.templates.LONGITUDINAL_SENSITIVE.value
-        )
+        self.longitudinal_sensitive = self.templates.LONGITUDINAL_SENSITIVE.value
 
     def locate_anatomical_directory(
         self,
@@ -65,9 +57,7 @@ class DataGrabber:
                 / f"ses-{sessions[0]}"
                 / "anat"
             )
-            prefix = (
-                f"sub-{participant_label}" + "_" + f"ses-{sessions[0]}" + "_"
-            )
+            prefix = f"sub-{participant_label}" + "_" + f"ses-{sessions[0]}" + "_"
         return anat_dir, prefix
 
     def search_for_file(
@@ -113,9 +103,7 @@ class DataGrabber:
             )
         return result if return_list else result[0]
 
-    def locate_anatomical_references(
-        self, participant_label: str, sessions: list
-    ):
+    def locate_anatomical_references(self, participant_label: str, sessions: list):
         """
         Locates subjects' preprocessed anatomical reference
 
@@ -124,9 +112,7 @@ class DataGrabber:
         output_dir : Path
             An output (derivatives) directort of either *fmriprep* or *dmriprep*
         """
-        anat_dir, prefix = self.locate_anatomical_directory(
-            participant_label, sessions
-        )
+        anat_dir, prefix = self.locate_anatomical_directory(participant_label, sessions)
         references = {}
         for key in self.templates.ANATOMICAL_TEMPLATES.value:
             pattern = prefix + self.templates[key].value
@@ -135,10 +121,10 @@ class DataGrabber:
         return references, anat_dir, prefix
 
     def build_parcellation_naming(
-        self, parcellation_scheme: str, references: dict, label: str = None
+        self, parcellation_scheme: str, reference: dict, label: str = None
     ):
         out_file = generate_atlas_file_name(
-            references.get("anatomical_reference"),
+            reference,
             parcellation_scheme,
             space="anat",
             label=label,

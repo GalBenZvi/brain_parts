@@ -67,21 +67,15 @@ def clean_dwi(ses_dir: Path):
     """
     dwi_imgs = [f for f in ses_dir.glob("dwi/*dir-FWD*run-*_dwi.nii.gz")]
     if len(dwi_imgs) > 1:
-        logging.info(
-            f"Found {len(dwi_imgs)} DWI series images to be renamed/changed"
-        )
+        logging.info(f"Found {len(dwi_imgs)} DWI series images to be renamed/changed")
         for dwi_img in dwi_imgs:
             template = dwi_img.name.split(".")[0]
-            dwi_associated_files = [
-                f for f in ses_dir.glob(f"dwi/{template}*")
-            ]
+            dwi_associated_files = [f for f in ses_dir.glob(f"dwi/{template}*")]
             for dwi in dwi_associated_files:
                 if "run-1" not in dwi.name:
                     dwi.unlink()
                 else:
-                    os.rename(
-                        dwi, dwi.with_name(dwi.name.replace("_run-1", ""))
-                    )
+                    os.rename(dwi, dwi.with_name(dwi.name.replace("_run-1", "")))
 
 
 def fix_session(ses_dir: Path):
@@ -132,9 +126,7 @@ def fix_naturalistic_func(ses_dir: Path) -> list:
     func_imgs = [f for f in ses_dir.glob("func/*")]
     if len(func_imgs) != 4:
         functionals = []
-        logging.info(
-            f"Found {len(func_imgs)} functional images to be renamed."
-        )
+        logging.info(f"Found {len(func_imgs)} functional images to be renamed.")
         for f in func_imgs:
             parts = f.name.split("_")
             task = f.name.split("_")[-3]

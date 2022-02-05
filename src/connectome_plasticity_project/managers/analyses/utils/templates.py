@@ -12,9 +12,7 @@ class DmriPrep(Enum):
     ANATOMICAL_REFERENCE = "*desc-preproc_T1w.nii*"
     MNI_TO_NATIVE_TRANSFORMATION = "*from-MNI*_to-T1w_mode-image_xfm.h5"
     GM_PROBABILITY = "*label-GM_probseg.nii*"
-    T1_TO_EPI_TRANSFORM = (
-        "{session}/dwi/*from-T1w_to-epiref_mode-image_xfm.txt"
-    )
+    T1_TO_EPI_TRANSFORM = "{session}/dwi/*from-T1w_to-epiref_mode-image_xfm.txt"
     NATIVE_EPI_REFERENCE = "{session}/dwi/*space-orig_desc-preproc_epiref.nii*"
 
 

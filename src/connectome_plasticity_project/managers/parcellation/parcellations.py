@@ -9,28 +9,18 @@ import pandas as pd
 from connectome_plasticity_project.managers.parcellation.utils import (
     DEFAULT_DESTINATION,
 )
-from connectome_plasticity_project.managers.parcellation.utils import (
-    LOGGER_CONFIG,
-)
-from connectome_plasticity_project.managers.parcellation.utils import (
-    PARCELLATIONS,
-)
-from connectome_plasticity_project.managers.parcellation.utils import (
-    apply_mask,
-)
+from connectome_plasticity_project.managers.parcellation.utils import LOGGER_CONFIG
+from connectome_plasticity_project.managers.parcellation.utils import PARCELLATIONS
+from connectome_plasticity_project.managers.parcellation.utils import apply_mask
 from connectome_plasticity_project.managers.parcellation.utils import at_ants
-from connectome_plasticity_project.managers.parcellation.utils import (
-    estimate_tensors,
-)
+from connectome_plasticity_project.managers.parcellation.utils import estimate_tensors
 from connectome_plasticity_project.managers.parcellation.utils import (
     freesurfer_anatomical_parcellation,
 )
 from connectome_plasticity_project.managers.parcellation.utils import (
     group_freesurfer_metrics,
 )
-from connectome_plasticity_project.managers.parcellation.utils import (
-    parcellate_tensors,
-)
+from connectome_plasticity_project.managers.parcellation.utils import parcellate_tensors
 from connectome_plasticity_project.managers.preprocessing.dmri.utils import (
     TENSOR_METRICS,
 )
@@ -48,9 +38,7 @@ class Parcellation:
 
     #: Files' templates
     ANATOMICAL_REFERENCE = "sub-{participant_label}*_desc-preproc_T1w.nii.gz"
-    MNI_TO_NATIVE_TRANSFORMATION = (
-        "sub-{participant_label}*from-MNI*_to-T1w*_xfm.h5"
-    )
+    MNI_TO_NATIVE_TRANSFORMATION = "sub-{participant_label}*from-MNI*_to-T1w*_xfm.h5"
     GM_PROBABILITY = "sub-{participant_label}*_label-GM_probseg.nii.gz"
 
     #: Default thresholding value for masking
@@ -79,8 +67,7 @@ class Parcellation:
         self.parcellations = parcellations
         timestamp = datetime.datetime.today().strftime("%Y-%m-%d-%H:%M:%S")
         logging.basicConfig(
-            filename=self.destination
-            / self.LOGGER_FILE.format(timestamp=timestamp),
+            filename=self.destination / self.LOGGER_FILE.format(timestamp=timestamp),
             **LOGGER_CONFIG,
         )
 
@@ -98,18 +85,14 @@ class Parcellation:
         Path
             Path to the corresponding output directory under *self.base_dir*
         """
-        destination = self.base_dir / getattr(
-            self, f"{analysis_type.upper()}_NAME"
-        )
+        destination = self.base_dir / getattr(self, f"{analysis_type.upper()}_NAME")
         if not destination.exists():
             logging.warn(
                 f"Could not locate {analysis_type} outputs under {destination}."
             )
         return destination
 
-    def locate_anatomical_reference(
-        self, subject_dir: Path, participant_label: str
-    ):
+    def locate_anatomical_reference(self, subject_dir: Path, participant_label: str):
         """
         Locates subjects' preprocessed anatomical reference
 
@@ -146,9 +129,7 @@ class Parcellation:
             gm_mask = [
                 f
                 for f in anat_dir.glob(
-                    self.GM_PROBABILITY.format(
-                        participant_label=participant_label
-                    )
+                    self.GM_PROBABILITY.format(participant_label=participant_label)
                 )
             ][0]
         except IndexError:
@@ -182,9 +163,7 @@ class Parcellation:
                 transformation,
                 gm_mask,
                 valid,
-            ) = self.locate_anatomical_reference(
-                subject_dir, participant_label
-            )
+            ) = self.locate_anatomical_reference(subject_dir, participant_label)
             if not valid:
                 logging.warn(
                     f"Could not locate anatomical reference for subject {participant_label}."
@@ -210,9 +189,7 @@ class Parcellation:
                     f"Transforming {parcellation_scheme} atlas from standard to subject {participant_label}'s anatomical space."
                 )
                 at_ants(in_file, reference, transformation, out_file, nn=True)
-                apply_mask(
-                    gm_mask, out_file, out_masked, self.MASKING_THRESHOLD
-                )
+                apply_mask(gm_mask, out_file, out_masked, self.MASKING_THRESHOLD)
 
         return subjects_parcellations
 
@@ -269,9 +246,7 @@ class Parcellation:
             A dictionary containing the location of all files with freesurfer-derived metrics stored in them.
         """
         destination = self.destination / parcellation_scheme / "smri" / "tmp"
-        subjects_metrics = self.generate_freesurfer_metrics(
-            parcellation_scheme
-        )
+        subjects_metrics = self.generate_freesurfer_metrics(parcellation_scheme)
         group_wise_data = group_freesurfer_metrics(
             list(subjects_metrics.keys()),
             destination,
@@ -304,9 +279,7 @@ class Parcellation:
         parcellations = self.register_parcellation_scheme(
             analysis_type, parcellation_scheme, cropped_to_gm
         )
-        multi_column = pd.MultiIndex.from_product(
-            [parcels.index, self.TENSOR_METRICS]
-        )
+        multi_column = pd.MultiIndex.from_product([parcels.index, self.TENSOR_METRICS])
         if analysis_type == "qsiprep":
             estimate_tensors(parcellations, self.qsiprep_dir, multi_column)
         return parcellate_tensors(

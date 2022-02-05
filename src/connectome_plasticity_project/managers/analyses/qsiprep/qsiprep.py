@@ -3,9 +3,7 @@ from pathlib import Path
 import pandas as pd
 from cv2 import threshold
 
-from connectome_plasticity_project.managers.analyses.analysis import (
-    AnalysisResults,
-)
+from connectome_plasticity_project.managers.analyses.analysis import AnalysisResults
 from connectome_plasticity_project.managers.analyses.utils.data_grabber import (
     DataGrabber,
 )
@@ -15,13 +13,9 @@ from connectome_plasticity_project.managers.analyses.utils.parcellations import 
 from connectome_plasticity_project.managers.analyses.utils.templates import (
     generate_atlas_file_name,
 )
-from connectome_plasticity_project.managers.analyses.utils.utils import (
-    apply_mask,
-)
+from connectome_plasticity_project.managers.analyses.utils.utils import apply_mask
 from connectome_plasticity_project.managers.analyses.utils.utils import at_ants
-from connectome_plasticity_project.managers.analyses.utils.utils import (
-    binarize_image,
-)
+from connectome_plasticity_project.managers.analyses.utils.utils import binarize_image
 
 
 class QsiprepResults(AnalysisResults):
@@ -70,14 +64,14 @@ class QsiprepResults(AnalysisResults):
         Path
             Whole-brain parcellation image in subject's anatomical space
         """
-        parcellation_file = self.available_parcellations.get(
-            parcellation_scheme
-        ).get("path")
+        parcellation_file = self.available_parcellations.get(parcellation_scheme).get(
+            "path"
+        )
         references, _, _ = self.data_grabber.locate_anatomical_references(
             participant_label, sessions
         )
         whole_brain = self.data_grabber.build_parcellation_naming(
-            parcellation_scheme, references
+            parcellation_scheme, references.get("anatomical_reference")
         )
         at_ants(
             in_file=parcellation_file,
@@ -129,7 +123,9 @@ class QsiprepResults(AnalysisResults):
             force=force,
         )
         masked_image = self.data_grabber.build_parcellation_naming(
-            parcellation_scheme, references, label="GM"
+            parcellation_scheme,
+            references.get("anatomical_reference"),
+            label="GM",
         )
         apply_mask(
             whole_brain,
@@ -160,9 +156,7 @@ class QsiprepResults(AnalysisResults):
             whole_brain, masked = self.register_parcellation_to_anatomical(
                 parcellation_scheme, participant_label, sessions, force
             )
-            for file, key in zip(
-                [whole_brain, masked], ["whole_brain", "gm_masked"]
-            ):
+            for file, key in zip([whole_brain, masked], ["whole_brain", "gm_masked"]):
 
                 if file.exists():
                     dataset_query.loc[
@@ -194,9 +188,7 @@ class QsiprepResults(AnalysisResults):
         parcellations = self.register_parcellation_scheme(
             analysis_type, parcellation_scheme, cropped_to_gm
         )
-        multi_column = pd.MultiIndex.from_product(
-            [parcels.index, self.TENSOR_METRICS]
-        )
+        multi_column = pd.MultiIndex.from_product([parcels.index, self.TENSOR_METRICS])
         if analysis_type == "qsiprep":
             estimate_tensors(parcellations, self.qsiprep_dir, multi_column)
         return parcellate_tensors(
