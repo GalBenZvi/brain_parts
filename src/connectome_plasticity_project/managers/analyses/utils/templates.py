@@ -1,6 +1,21 @@
 from enum import Enum
 from pathlib import Path
 
+BIDS_NAMING_TEMPLATE = {
+    "subject": "sub",
+    "session": "ses",
+    "acquisition": "acq",
+    "ceagent": "ce",
+    "reconstruction": "rec",
+    "run": "run",
+    "space": "space",
+    "cohort": "cohort",
+    "resolution": "res",
+    "label": "label",
+    "desc": "desc",
+    "atlas": "atlas",
+}
+
 
 class DmriPrep(Enum):
     ANATOMICAL_TEMPLATES = [
@@ -12,7 +27,9 @@ class DmriPrep(Enum):
     ANATOMICAL_REFERENCE = "*desc-preproc_T1w.nii*"
     MNI_TO_NATIVE_TRANSFORMATION = "*from-MNI*_to-T1w_mode-image_xfm.h5"
     GM_PROBABILITY = "*label-GM_probseg.nii*"
-    T1_TO_EPI_TRANSFORM = "{session}/dwi/*from-T1w_to-epiref_mode-image_xfm.txt"
+    T1_TO_EPI_TRANSFORM = (
+        "{session}/dwi/*from-T1w_to-epiref_mode-image_xfm.txt"
+    )
     NATIVE_EPI_REFERENCE = "{session}/dwi/*space-orig_desc-preproc_epiref.nii*"
 
 
@@ -34,7 +51,7 @@ def generate_atlas_file_name(
     parcellation_scheme: str,
     space: str = "anat",
     label: str = None,
-    replacement: str = "desc-preproc_T1w",
+    replacement: str = "T1w",
 ) -> Path:
     """
     Generate a file's name for a native-space parcellation atlas
@@ -57,9 +74,10 @@ def generate_atlas_file_name(
     Path
         Path to a native parcellation according to input specifications.
     """
+    out_file = reference.with_name(reference.name.replace(replacement, "dseg"))
     if not label:
-        return reference.with_name(
-            reference.name.replace(
+        return out_file.with_name(
+            out_file.name.replace(
                 replacement, f"space-{space}_desc-{parcellation_scheme}_atlas"
             )
         )

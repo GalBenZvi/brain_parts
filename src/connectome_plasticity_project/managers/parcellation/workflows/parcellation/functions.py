@@ -68,9 +68,9 @@ def native_parcellation_naming(
 
     data_grabber = DataGrabber(base_dir, analysis_type)
     whole_brain = data_grabber.build_parcellation_naming(
-        parcellation_scheme, reference
+        reference, suffix="dseg", atlas=parcellation_scheme
     )
     gm_cropped = data_grabber.build_parcellation_naming(
-        parcellation_scheme, reference, label="GM"
+        reference, label="GM", suffix="dseg", atlas=parcellation_scheme
     )
     return str(whole_brain), str(gm_cropped)

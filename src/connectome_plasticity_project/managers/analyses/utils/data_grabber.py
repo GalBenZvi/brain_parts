@@ -3,15 +3,17 @@ from typing import Union
 
 import bids
 
-from connectome_plasticity_project.managers.analyses.messages import INVALID_PATTERN
-from connectome_plasticity_project.managers.analyses.utils.templates import TEMPLATES
+from connectome_plasticity_project.managers.analyses.messages import (
+    INVALID_PATTERN,
+)
 from connectome_plasticity_project.managers.analyses.utils.templates import (
-    generate_atlas_file_name,
+    BIDS_NAMING_TEMPLATE,
+    TEMPLATES,
 )
 
 
 class DataGrabber:
-    def __init__(self, base_dir: Path, analysis_type: str) -> None:
+    def __init__(self, base_dir: Path, analysis_type: str = "qsiprep") -> None:
         """
         Initiates a *DataGrabber* instance for *analysis_type*, querying its *base_dir*
 
@@ -23,9 +25,13 @@ class DataGrabber:
             A string representing the analysis that is stored in *base_dir*
         """
         self.base_dir = Path(base_dir)
-        self.layout = bids.BIDSLayout(base_dir, derivatives=True, validate=False)
+        self.layout = bids.BIDSLayout(
+            base_dir, derivatives=True, validate=False
+        )
         self.templates = TEMPLATES.get(analysis_type)
-        self.longitudinal_sensitive = self.templates.LONGITUDINAL_SENSITIVE.value
+        self.longitudinal_sensitive = (
+            self.templates.LONGITUDINAL_SENSITIVE.value
+        )
 
     def locate_anatomical_directory(
         self,
@@ -57,7 +63,9 @@ class DataGrabber:
                 / f"ses-{sessions[0]}"
                 / "anat"
             )
-            prefix = f"sub-{participant_label}" + "_" + f"ses-{sessions[0]}" + "_"
+            prefix = (
+                f"sub-{participant_label}" + "_" + f"ses-{sessions[0]}" + "_"
+            )
         return anat_dir, prefix
 
     def search_for_file(
@@ -103,7 +111,9 @@ class DataGrabber:
             )
         return result if return_list else result[0]
 
-    def locate_anatomical_references(self, participant_label: str, sessions: list):
+    def locate_anatomical_references(
+        self, participant_label: str, sessions: list
+    ):
         """
         Locates subjects' preprocessed anatomical reference
 
@@ -112,7 +122,9 @@ class DataGrabber:
         output_dir : Path
             An output (derivatives) directort of either *fmriprep* or *dmriprep*
         """
-        anat_dir, prefix = self.locate_anatomical_directory(participant_label, sessions)
+        anat_dir, prefix = self.locate_anatomical_directory(
+            participant_label, sessions
+        )
         references = {}
         for key in self.templates.ANATOMICAL_TEMPLATES.value:
             pattern = prefix + self.templates[key].value
@@ -120,13 +132,33 @@ class DataGrabber:
             references[key.lower()] = result
         return references, anat_dir, prefix
 
-    def build_parcellation_naming(
-        self, parcellation_scheme: str, reference: dict, label: str = None
-    ):
-        out_file = generate_atlas_file_name(
-            reference,
-            parcellation_scheme,
-            space="anat",
-            label=label,
-        )
-        return out_file
+    def build_derivatives_name(
+        self,
+        reference: dict,
+        **kwargs,
+    ) -> Path:
+        """
+        A more "loose" version for *niworkflows" DerivativeDataSink, to allow for unrecognized BIDS derivatives naming.
+
+        Parameters
+        ----------
+        reference : dict
+            A reference file ("source file" in DerivativesDataSink)
+
+        Returns
+        -------
+        Path
+            Path to an updated derivatives file in the same directory as *reference*
+        """
+        entities = self.layout.parse_file_entities(reference)
+        print(entities)
+        updated_entities = entities.copy()
+        for key, val in kwargs.items():
+            updated_entities[key] = val
+        parts = []
+        for key, val in BIDS_NAMING_TEMPLATE.items():
+            if key in updated_entities:
+                parts.append(f"{val}-{updated_entities.get(key)}")
+        parts.append(updated_entities.get("suffix"))
+        out_name = "_".join(parts) + updated_entities.get("extension")
+        return reference.with_name(out_name)
