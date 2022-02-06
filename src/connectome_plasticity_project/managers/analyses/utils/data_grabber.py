@@ -151,7 +151,6 @@ class DataGrabber:
             Path to an updated derivatives file in the same directory as *reference*
         """
         entities = self.layout.parse_file_entities(reference)
-        print(entities)
         updated_entities = entities.copy()
         for key, val in kwargs.items():
             updated_entities[key] = val

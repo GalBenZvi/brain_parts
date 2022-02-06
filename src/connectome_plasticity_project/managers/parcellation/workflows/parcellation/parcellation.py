@@ -1,52 +1,35 @@
 import nipype.pipeline.engine as pe
 
-from connectome_plasticity_project.managers.analyses.qsiprep.workflows.parcellation.edges import (
+from connectome_plasticity_project.managers.parcellation.workflows.parcellation.edges import (
     APPLY_TRANSFORM_TO_APPLY_MASK_EDGES,
-    FILES_QUERY_TO_APPLY_TRANSFORM_EDGES,
-    FILES_QUERY_TO_NATIVE_NAMING_EDGES,
-    FILES_QUERY_TO_THRESHOLD_EDGES,
     INPUT_TO_APPLY_TRANSFORM_EDGES,
-    INPUT_TO_FILES_QUERY_EDGES,
     INPUT_TO_NATIVE_NAMING_EDGES,
     INPUT_TO_THRESHOLD_EDGES,
     NATIVE_NAMING_TO_APPLY_MASK_EDGES,
     NATIVE_NAMING_TO_APPLY_TRANSFORM_EDGES,
     THRESHOLD_TO_APPLY_MASK_EDGES,
 )
-from connectome_plasticity_project.managers.analyses.qsiprep.workflows.parcellation.nodes import (
+from connectome_plasticity_project.managers.parcellation.workflows.parcellation.nodes import (
     ANTS_APPLY_TRANSFORM_NODE,
     CROP_TO_MASK_NODE,
-    FILES_QUERY_NODE,
     INPUT_NODE,
     NATIVE_PARCELLATION_NAMING_NODE,
     PROBSEG_TO_MASK_NODE,
 )
 
 PARCELLATION = [
-    (INPUT_NODE, FILES_QUERY_NODE, INPUT_TO_FILES_QUERY_EDGES),
     (
         INPUT_NODE,
         NATIVE_PARCELLATION_NAMING_NODE,
         INPUT_TO_NATIVE_NAMING_EDGES,
     ),
-    (
-        FILES_QUERY_NODE,
-        NATIVE_PARCELLATION_NAMING_NODE,
-        FILES_QUERY_TO_NATIVE_NAMING_EDGES,
-    ),
     (INPUT_NODE, ANTS_APPLY_TRANSFORM_NODE, INPUT_TO_APPLY_TRANSFORM_EDGES),
-    (
-        FILES_QUERY_NODE,
-        ANTS_APPLY_TRANSFORM_NODE,
-        FILES_QUERY_TO_APPLY_TRANSFORM_EDGES,
-    ),
     (
         NATIVE_PARCELLATION_NAMING_NODE,
         ANTS_APPLY_TRANSFORM_NODE,
         NATIVE_NAMING_TO_APPLY_TRANSFORM_EDGES,
     ),
     (INPUT_NODE, PROBSEG_TO_MASK_NODE, INPUT_TO_THRESHOLD_EDGES),
-    (FILES_QUERY_NODE, PROBSEG_TO_MASK_NODE, FILES_QUERY_TO_THRESHOLD_EDGES),
     (PROBSEG_TO_MASK_NODE, CROP_TO_MASK_NODE, THRESHOLD_TO_APPLY_MASK_EDGES),
     (
         ANTS_APPLY_TRANSFORM_NODE,

@@ -5,16 +5,14 @@ import nipype.pipeline.engine as pe
 from nipype.interfaces import ants, fsl
 from nipype.interfaces import utility as niu
 
-from connectome_plasticity_project.managers.analyses.qsiprep.workflows.parcellation.configuration import (
+from connectome_plasticity_project.managers.parcellation.workflows.parcellation.configuration import (
     ANTS_APPLY_TRANSFORM_KWARGS,
     CROP_TO_MASK_KWARGS,
-    FILES_QUERY_KWARGS,
     INPUT_NODE_FIELDS,
     NATIVE_PARCELLATION_NAMING_KWARGS,
     PROBSEG_TO_MASK_KWARGS,
 )
-from connectome_plasticity_project.managers.analyses.qsiprep.workflows.parcellation.functions import (
-    files_query,
+from connectome_plasticity_project.managers.parcellation.workflows.parcellation.functions import (
     native_parcellation_naming,
 )
 
@@ -24,10 +22,6 @@ INPUT_NODE = pe.Node(
 )
 
 #: building blocks
-FILES_QUERY_NODE = pe.Node(
-    niu.Function(**FILES_QUERY_KWARGS, function=files_query),
-    name="files_query",
-)
 
 NATIVE_PARCELLATION_NAMING_NODE = pe.Node(
     niu.Function(

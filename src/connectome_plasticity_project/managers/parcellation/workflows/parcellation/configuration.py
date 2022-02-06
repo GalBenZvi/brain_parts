@@ -6,7 +6,6 @@ INPUT_NODE_FIELDS = [
     "base_dir",
     "analysis_type",
     "participant_label",
-    "sessions",
     "anatomical_reference",
     "mni_to_native_transformation",
     "gm_probability",
