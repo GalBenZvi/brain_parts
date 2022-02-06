@@ -9,9 +9,7 @@ warnings.filterwarnings("ignore")
 
 import click
 
-from connectome_plasticity_project.managers.preprocessing.dmri.dmri import (
-    DmriManager,
-)
+from connectome_plasticity_project.managers.preprocessing.dmri.dmri import DmriManager
 
 
 @click.command()

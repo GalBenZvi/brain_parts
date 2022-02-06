@@ -8,27 +8,13 @@ import pandas as pd
 
 from connectome_plasticity_project.managers.parcellation.utils import (
     DEFAULT_DESTINATION,
-)
-from connectome_plasticity_project.managers.parcellation.utils import (
     LOGGER_CONFIG,
-)
-from connectome_plasticity_project.managers.parcellation.utils import (
     PARCELLATIONS,
-)
-from connectome_plasticity_project.managers.parcellation.utils import (
     apply_mask,
-)
-from connectome_plasticity_project.managers.parcellation.utils import at_ants
-from connectome_plasticity_project.managers.parcellation.utils import (
+    at_ants,
     estimate_tensors,
-)
-from connectome_plasticity_project.managers.parcellation.utils import (
     freesurfer_anatomical_parcellation,
-)
-from connectome_plasticity_project.managers.parcellation.utils import (
     group_freesurfer_metrics,
-)
-from connectome_plasticity_project.managers.parcellation.utils import (
     parcellate_tensors,
 )
 from connectome_plasticity_project.managers.preprocessing.dmri.utils import (
