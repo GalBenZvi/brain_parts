@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import List
 
 import nipype.pipeline.engine as pe
 import pandas as pd
@@ -12,13 +13,8 @@ from connectome_plasticity_project.managers.analyses.utils.data_grabber import (
 from connectome_plasticity_project.managers.analyses.utils.parcellations import (
     PARCELLATIONS,
 )
-from connectome_plasticity_project.managers.analyses.utils.utils import (
-    apply_mask,
-    at_ants,
-    binarize_image,
-)
-from connectome_plasticity_project.managers.parcellation.workflows import (
-    parcellation,
+from connectome_plasticity_project.managers.analyses.utils.templates import (
+    TEMPLATES,
 )
 from connectome_plasticity_project.managers.parcellation.workflows.parcellation import (
     init_parcellation_wf,
@@ -48,6 +44,7 @@ class QsiprepResults(AnalysisResults):
             base_dir, analysis_type=self.ANALYSIS_TYPE
         )
         self.available_parcellations = available_parcellations
+        self.templates = TEMPLATES.get(self.ANALYSIS_TYPE)
 
     def initiate_working_directory(self, work_dir: Path = None):
         """
@@ -68,7 +65,43 @@ class QsiprepResults(AnalysisResults):
         work_dir.mkdir(exist_ok=True, parents=True)
         return work_dir
 
-    def register_parcellation_to_anatomical(
+    def get_native_parcellation_names(
+        self, parcellation_scheme: str, references: dict, reference_type: str
+    ) -> List[Path]:
+        """
+        Construct native parcellation scheme's file names according to given inputs *references*.
+
+        Parameters
+        ----------
+        parcellation_scheme : str
+            A string representing existing key within *self.parcellations*.
+        references : dict
+            A dictionary containing relevant paths for registration of atlas to subject's individual space.
+        reference_type : str
+            A string of either "anatomical" or "epi", representing the type of reference in subject's space.
+        Returns
+        -------
+        List[Path]
+            Path to whole-brain a GM-cropped parcellation schemes in subject's individual space.
+        """
+        whole_brain = self.data_grabber.build_derivatives_name(
+            references.get("anatomical_reference"),
+            atlas=parcellation_scheme,
+            **self.templates.NATIVE_PARCELLATION_NAMING_KWARGS.value.get(
+                reference_type
+            ),
+        )
+        gm_cropped = self.data_grabber.build_derivatives_name(
+            references.get("anatomical_reference"),
+            atlas=parcellation_scheme,
+            label="GM",
+            **self.templates.NATIVE_PARCELLATION_NAMING_KWARGS.value.get(
+                reference_type
+            ),
+        )
+        return whole_brain, gm_cropped
+
+    def register_parcellation_to_individual(
         self,
         parcellation_scheme: str,
         participant_label: str,
@@ -78,61 +111,152 @@ class QsiprepResults(AnalysisResults):
         write_graph: bool = True,
     ) -> Path:
         """
-        Register a parcellation atlas to subject's anatomical space
+        Register a parcellation atlas to subject's individual (anatomical and EPI) space(s).
 
         Parameters
         ----------
         parcellation_scheme : str
             A string representing existing key within *self.parcellations*.
-        parcellation_file : Path
-            Path to a labeled image of *parcellation_scheme*
         participant_label : str
             A string representing an available subject in *self.base_dir*
         sessions : list
             A list of available sessions for *participant_label*
+        prob_mask_threshold : float, optional
+            Probability masking threshold, by default None
         force : bool, optional
             Whether to perform operation even if output exists, by default False
         write_graph : bool, optional
             Whether to write a graph representing the resulting workflow, by default True
+
         Returns
         -------
         Path
             Whole-brain parcellation image in subject's anatomical space
         """
-        references, _, _ = self.data_grabber.locate_anatomical_references(
-            participant_label, sessions
+
+        try:
+            references, _, _ = self.data_grabber.locate_anatomical_references(
+                participant_label, sessions
+            )
+        except FileNotFoundError:
+            return Path(None), Path(None)
+
+    def register_parcellation_to_anatomical(
+        self,
+        parcellation_scheme: str,
+        references: dict,
+        participant_label: str,
+        prob_mask_threshold: float = None,
+        write_graph: bool = True,
+    ):
+        """
+        Register a parcellation atlas to subject's individual (anatomical and EPI) space(s).
+
+        Parameters
+        ----------
+        parcellation_scheme : str
+            A string representing existing key within *self.parcellations*.
+        references : dict
+            A dictionary containing relevant paths for registration of atlas to subject's anatomical space.
+        participant_label : str
+            A string representing an available subject in *self.base_dir*
+        prob_mask_threshold : float, optional
+            Probability masking threshold, by default None
+        force : bool, optional
+            Whether to perform operation even if output exists, by default False
+        write_graph : bool, optional
+            Whether to write a graph representing the resulting workflow, by default True
+
+        Returns
+        -------
+        Path
+            Whole-brain parcellation image in subject's anatomical space
+        """
+        whole_brain, gm_cropped = self.get_native_parcellation_names(
+            parcellation_scheme, references, "anatomical"
         )
-        whole_brain = self.data_grabber.build_derivatives_name(
-            references.get("anatomical_reference"),
-            suffix="dseg",
-            atlas=parcellation_scheme,
-            space="anat",
+
+        parcellation_wf = self.init_parcellation_wf(
+            parcellation_scheme,
+            participant_label,
+            references,
+            whole_brain,
+            gm_cropped,
+            prob_mask_threshold=prob_mask_threshold,
         )
-        gm_cropped = self.data_grabber.build_derivatives_name(
-            references.get("anatomical_reference"),
-            label="GM",
-            suffix="dseg",
-            atlas=parcellation_scheme,
-            space="anat",
-        )
-        if not whole_brain.exists() or not gm_cropped.exists() or force:
+        if write_graph:
+            parcellation_wf.write_graph(graph2use="colored")
+        return whole_brain, gm_cropped, parcellation_wf
+
+    def register_parcellation_to_epi(
+        self,
+        parcellation_scheme: str,
+        references: dict,
+        participant_label: str,
+        sessions: list,
+        write_graph: bool = True,
+    ):
+        """
+        Register a parcellation atlas to subject's individual (anatomical and EPI) space(s).
+
+        Parameters
+        ----------
+        parcellation_scheme : str
+            A string representing existing key within *self.parcellations*.
+        references : dict
+            A dictionary containing relevant paths for registration of atlas to subject's anatomical space.
+        participant_label : str
+            A string representing an available subject in *self.base_dir*
+        prob_mask_threshold : float, optional
+            Probability masking threshold, by default None
+        force : bool, optional
+            Whether to perform operation even if output exists, by default False
+        write_graph : bool, optional
+            Whether to write a graph representing the resulting workflow, by default True
+
+        Returns
+        -------
+        Path
+            Whole-brain parcellation image in subject's anatomical space
+        """
+        parcellations = {}
+        for session in sessions:
+            parcellations[session] = {}
+            epi_references, _, _ = self.data_grabber.locate_epi_references(
+                participant_label, session
+            )
+            references["anatomical_reference"] = epi_references.get(
+                "native_epi_reference"
+            )
+            whole_brain, gm_cropped = self.get_native_parcellation_names(
+                parcellation_scheme, references, "epi"
+            )
+
             parcellation_wf = self.init_parcellation_wf(
                 parcellation_scheme,
                 participant_label,
                 references,
-                prob_mask_threshold,
+                whole_brain,
+                gm_cropped,
+                session=session,
+                crop_to_gm=False,
             )
             if write_graph:
                 parcellation_wf.write_graph(graph2use="colored")
-            parcellation_wf.run()
-
-        return whole_brain, gm_cropped
+            parcellations[session]["whole_brain"] = whole_brain
+            parcellations[session]["gm_cropped"] = gm_cropped
+            parcellations[session]["parcellation_wf"] = parcellation_wf
+        return parcellations
 
     def init_parcellation_wf(
         self,
         parcellation_scheme: str,
         participant_label: str,
         references: dict,
+        whole_brain: str,
+        gm_cropped: str,
+        session: str = None,
+        crop_to_gm: bool = True,
         prob_mask_threshold: float = None,
     ) -> pe.Workflow:
         """
@@ -159,18 +283,23 @@ class QsiprepResults(AnalysisResults):
             parcellation_scheme
         ).get("path")
 
+        if not session:
+            wf_name = f"sub-{participant_label}_anatomical_parcellation_wf"
+        else:
+            wf_name = (
+                f"sub-{participant_label}_ses-{session}_epi_parcellation_wf"
+            )
         parcellation_wf = init_parcellation_wf(
-            name=f"sub-{participant_label}_parcellation_wf"
+            wf_name,
+            crop_to_gm=crop_to_gm,
         )
-        parcellation_wf.base_dir = self.work_dir
+        parcellation_wf.base_dir = self.work_dir / participant_label
         parcellation_wf.inputs.inputnode.set(
-            base_dir=self.base_dir,
+            out_whole_brain=str(whole_brain),
+            out_gm_cropped=str(gm_cropped),
             parcellation_image=parcellation_file,
-            parcellation_scheme=parcellation_scheme,
-            participant_label=participant_label,
             probability_masking_threshold=prob_mask_threshold
             or self.PROBSEG_THRESHOLD,
-            analysis_type=self.ANALYSIS_TYPE,
             **references,
         )
         return parcellation_wf
@@ -206,7 +335,6 @@ class QsiprepResults(AnalysisResults):
             for file, key in zip(
                 [whole_brain, masked], ["whole_brain", "gm_masked"]
             ):
-
                 if file.exists():
                     dataset_query.loc[
                         participant_label,

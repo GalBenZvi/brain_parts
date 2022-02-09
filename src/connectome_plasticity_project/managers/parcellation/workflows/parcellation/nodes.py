@@ -9,11 +9,7 @@ from connectome_plasticity_project.managers.parcellation.workflows.parcellation.
     ANTS_APPLY_TRANSFORM_KWARGS,
     CROP_TO_MASK_KWARGS,
     INPUT_NODE_FIELDS,
-    NATIVE_PARCELLATION_NAMING_KWARGS,
     PROBSEG_TO_MASK_KWARGS,
-)
-from connectome_plasticity_project.managers.parcellation.workflows.parcellation.functions import (
-    native_parcellation_naming,
 )
 
 #: i/o
@@ -22,15 +18,6 @@ INPUT_NODE = pe.Node(
 )
 
 #: building blocks
-
-NATIVE_PARCELLATION_NAMING_NODE = pe.Node(
-    niu.Function(
-        **NATIVE_PARCELLATION_NAMING_KWARGS,
-        function=native_parcellation_naming
-    ),
-    name="native_parcellation_naming",
-)
-
 ANTS_APPLY_TRANSFORM_NODE = pe.Node(
     ants.ApplyTransforms(**ANTS_APPLY_TRANSFORM_KWARGS), name="apply_transform"
 )

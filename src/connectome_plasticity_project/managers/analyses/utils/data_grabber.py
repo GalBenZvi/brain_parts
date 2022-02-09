@@ -132,6 +132,29 @@ class DataGrabber:
             references[key.lower()] = result
         return references, anat_dir, prefix
 
+    def locate_epi_references(self, participant_label: str, session: str):
+        """
+        Locates subjects' preprocessed anatomical reference
+
+        Parameters
+        ----------
+        output_dir : Path
+            An output (derivatives) directort of either *fmriprep* or *dmriprep*
+        """
+        dwi_dir = (
+            self.base_dir
+            / f"sub-{participant_label}"
+            / f"ses-{session}"
+            / "dwi"
+        )
+        prefix = f"sub-{participant_label}_ses-{session}_"
+        references = {}
+        for key in self.templates.EPI_TEMPLATES.value:
+            pattern = prefix + self.templates[key].value
+            result = self.search_for_file(dwi_dir, pattern, None)
+            references[key.lower()] = result
+        return references, dwi_dir, prefix
+
     def build_derivatives_name(
         self,
         reference: dict,
