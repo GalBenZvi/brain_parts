@@ -23,6 +23,7 @@ class DmriPrep(Enum):
         "MNI_TO_NATIVE_TRANSFORMATION",
         "GM_PROBABILITY",
     ]
+    EPI_TEMPLATES = ["NATIVE_EPI_REFERENCE"]
     LONGITUDINAL_SENSITIVE = True
     ANATOMICAL_REFERENCE = "*desc-preproc_T1w.nii*"
     MNI_TO_NATIVE_TRANSFORMATION = "*from-MNI*_to-T1w_mode-image_xfm.h5"
@@ -39,11 +40,16 @@ class QsiPrep(Enum):
         "MNI_TO_NATIVE_TRANSFORMATION",
         "GM_PROBABILITY",
     ]
+    EPI_TEMPLATES = ["NATIVE_EPI_REFERENCE"]
     LONGITUDINAL_SENSITIVE = False
     ANATOMICAL_REFERENCE = "*desc-preproc_T1w.nii*"
     MNI_TO_NATIVE_TRANSFORMATION = "*from-MNI*_to-T1w_mode-image_xfm.h5"
     GM_PROBABILITY = "*label-GM_probseg.nii*"
-    NATIVE_EPI_REFERENCE = "{session}/dwi/*dwiref.nii*"
+    NATIVE_EPI_REFERENCE = "*desc-preproc_dwi.nii*"
+    NATIVE_PARCELLATION_NAMING_KWARGS = {
+        "anatomical": {"space": "T1w", "resolution": "anat", "suffix": "dseg"},
+        "epi": {"space": "T1w", "resolution": "dwi", "suffix": "dseg"},
+    }
 
 
 def generate_atlas_file_name(

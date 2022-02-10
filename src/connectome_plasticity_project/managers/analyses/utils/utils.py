@@ -1,7 +1,16 @@
+import logging
 from pathlib import Path
 
 from nipype.interfaces import fsl
 from nipype.interfaces.ants import ApplyTransforms
+
+DEFAULT_DESTINATION = "/home/groot/Projects/PhD/connectomeplasticity/data/analyses/{analysis_type}"
+
+LOGGER_CONFIG = dict(
+    filemode="w",
+    format="%(asctime)s - %(message)s",
+    level=logging.INFO,
+)
 
 
 def at_ants(
