@@ -619,9 +619,6 @@ def at_ants(
     ref: Path,
     xfm: Path,
     outfile: Path,
-    nn: bool,
-    invert_xfm: bool = False,
-    run: bool = True,
 ):
     """
     Apply pre-calculated transformations between images of different spaces
@@ -645,14 +642,14 @@ def at_ants(
     at.inputs.reference_image = ref
     at.inputs.transforms = xfm
     at.inputs.output_image = str(outfile)
-    if nn:
-        at.inputs.interpolation = "NearestNeighbor"
-    if invert_xfm:
-        at.inputs.invert_transform_flags = True
-    if run:
-        at.run()
-    else:
-        return at
+    # if nn:
+    #     at.inputs.interpolation = "NearestNeighbor"
+    # if invert_xfm:
+    #     at.inputs.invert_transform_flags = True
+    # if run:
+    #     at.run()
+    # else:
+    #     return at
 
 
 def apply_mask(mask: Path, target: Path, out_file: Path, threshold: float):

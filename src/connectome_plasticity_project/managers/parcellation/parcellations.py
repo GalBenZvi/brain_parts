@@ -1,54 +1,27 @@
 import datetime
 import logging
 import logging.config
-import os
 from pathlib import Path
 
-import pandas as pd
+from nipype.interfaces import fsl
+from nipype.interfaces.ants import ApplyTransforms
 
 from connectome_plasticity_project.managers.parcellation.utils import (
-    DEFAULT_DESTINATION,
     LOGGER_CONFIG,
     PARCELLATIONS,
-    apply_mask,
-    at_ants,
-    estimate_tensors,
-    freesurfer_anatomical_parcellation,
-    group_freesurfer_metrics,
-    parcellate_tensors,
-)
-from connectome_plasticity_project.managers.preprocessing.dmri.utils import (
-    TENSOR_METRICS,
 )
 
 
 class Parcellation:
-    #: Default output names
-    DMRIPREP_NAME = "dmriprep"
-    FMRIPREP_NAME = "fmriprep"
-    QSIPREP_NAME = "qsiprep"
-    FREESURFER_NAME = "freesurfer_longitudinal"
-
-    #: Dmri tensor-derived metrics
-    TENSOR_METRICS = TENSOR_METRICS
-
-    #: Files' templates
-    ANATOMICAL_REFERENCE = "sub-{participant_label}*_desc-preproc_T1w.nii.gz"
-    MNI_TO_NATIVE_TRANSFORMATION = (
-        "sub-{participant_label}*from-MNI*_to-T1w*_xfm.h5"
-    )
-    GM_PROBABILITY = "sub-{participant_label}*_label-GM_probseg.nii.gz"
-
-    #: Default thresholding value for masking
-    MASKING_THRESHOLD = 0
+    #: Default KWARGS
+    APPLY_TRANSFORM_KWARGS = dict(interpolation="NearestNeighbor")
+    THRESHOLD_KWARGS = dict(direction="below")
+    MASKING_KWARGS = dict(output_datatype="int")
     #: Default destination locations
     LOGGER_FILE = "parcellation_{timestamp}.log"
 
     def __init__(
-        self,
-        base_dir: Path,
-        destination: Path = DEFAULT_DESTINATION,
-        parcellations: dict = PARCELLATIONS,
+        self, destination: Path, parcellations: dict = PARCELLATIONS
     ) -> None:
         """
         Initiate a Parcellation object
@@ -60,7 +33,6 @@ class Parcellation:
         parcellations : dict
             A dictionary with keys of *image* and *parcels* for each required parcellation scheme
         """
-        self.base_dir = Path(base_dir)
         self.destination = Path(destination)
         self.parcellations = parcellations
         timestamp = datetime.datetime.today().strftime("%Y-%m-%d-%H:%M:%S")
@@ -70,82 +42,14 @@ class Parcellation:
             **LOGGER_CONFIG,
         )
 
-    def locate_outputs(self, analysis_type: str) -> Path:
-        """
-        Locates output directories under *self.base_dir*
-
-        Parameters
-        ----------
-        analysis_type : str
-            A string that represents an available analysis (i.e dmriprep, fmriprep, etc.)
-
-        Returns
-        -------
-        Path
-            Path to the corresponding output directory under *self.base_dir*
-        """
-        destination = self.base_dir / getattr(
-            self, f"{analysis_type.upper()}_NAME"
-        )
-        if not destination.exists():
-            logging.warn(
-                f"Could not locate {analysis_type} outputs under {destination}."
-            )
-        return destination
-
-    def locate_anatomical_reference(
-        self, subject_dir: Path, participant_label: str
-    ):
-        """
-        Locates subjects' preprocessed anatomical reference
-
-        Parameters
-        ----------
-        output_dir : Path
-            An output (derivatives) directort of either *fmriprep* or *dmriprep*
-        """
-        anat_dir = subject_dir / "anat"
-        reference = transformation = gm_mask = None
-        valid = True
-        if not anat_dir.exists():
-            try:
-                anat_dir = [d for d in subject_dir.glob("ses-*/anat")][0]
-            except IndexError:
-                valid = False
-        try:
-            reference = [
-                f
-                for f in anat_dir.glob(
-                    self.ANATOMICAL_REFERENCE.format(
-                        participant_label=participant_label
-                    )
-                )
-            ][0]
-            transformation = [
-                f
-                for f in anat_dir.glob(
-                    self.MNI_TO_NATIVE_TRANSFORMATION.format(
-                        participant_label=participant_label
-                    )
-                )
-            ][0]
-            gm_mask = [
-                f
-                for f in anat_dir.glob(
-                    self.GM_PROBABILITY.format(
-                        participant_label=participant_label
-                    )
-                )
-            ][0]
-        except IndexError:
-            valid = False
-        return reference, transformation, gm_mask, valid
-
     def register_parcellation_scheme(
         self,
-        analysis_type: str,
         parcellation_scheme: str,
-        crop_to_gm: bool = True,
+        participant_label: str,
+        reference: Path,
+        mni2native_transform: Path,
+        out_whole_brain: Path,
+        force: bool = False,
     ):
         """
         Register a parcellation scheme to subjects' anatomical space
@@ -158,225 +62,57 @@ class Parcellation:
         parcellation_scheme : str
             A string representing existing key within *self.parcellations*.
         """
-        output_dir = self.locate_outputs(analysis_type)
-        in_file = self.parcellations.get(parcellation_scheme).get("path")
-        subjects_parcellations = {}
-        for subject_dir in output_dir.glob("sub-*"):
-            participant_label = subject_dir.name.split("-")[-1]
-            (
-                reference,
-                transformation,
-                gm_mask,
-                valid,
-            ) = self.locate_anatomical_reference(
-                subject_dir, participant_label
+        if out_whole_brain.exists() and not force:
+            logging.info(
+                f"""{parcellation_scheme} atlas was previously registerted to subject {participant_label}'s individual space.\n
+                To re-run this process, pass force=True as a keyword arguement."""
             )
-            if not valid:
-                logging.warn(
-                    f"Could not locate anatomical reference for subject {participant_label}."
-                )
-                continue
-            out_file = reference.with_name(
-                reference.name.replace(
-                    "desc-preproc_T1w",
-                    f"space-anat_atlas-{parcellation_scheme}",
-                )
-            )
-            out_masked = reference.with_name(
-                reference.name.replace(
-                    "desc-preproc_T1w",
-                    f"space-anat_desc-GM_atlas-{parcellation_scheme}",
-                )
-            )
-            subjects_parcellations[participant_label] = (
-                out_masked if crop_to_gm else out_file
-            )
-            if not out_file.exists() or not out_masked.exists():
-                logging.info(
-                    f"Transforming {parcellation_scheme} atlas from standard to subject {participant_label}'s anatomical space."
-                )
-                at_ants(in_file, reference, transformation, out_file, nn=True)
-                apply_mask(
-                    gm_mask, out_file, out_masked, self.MASKING_THRESHOLD
-                )
+            return
 
-        return subjects_parcellations
-
-    def generate_freesurfer_metrics(self, parcellation_scheme: str):
-        """
-        mris_ca_label -sdir ../../freesurfer/ sub-14 lh surf/lh.sphere.reg /media/groot/Data/Parcellations/MNI/Brainnetome_FS/lh.BN_Atlas.gcs lh.bn.annot
-        mris_anatomical_stats -a label/lh.bn.annot -b sub-14 lh
-
-
-
-        Parameters
-        ----------
-        parcellation_scheme : str
-            A string representing existing key within *self.parcellations*.
-        """
-        gcs, gcs_subcortex, ctab = [
-            self.parcellations.get(parcellation_scheme).get(key)
-            for key in ["gcs", "gcs_subcortex", "ctab"]
-        ]
-        freesurfer_metrics = {}
-        if not gcs:
-            raise (
-                f"No available Freesurfer .gcs file located for parcellation scheme {parcellation_scheme}!"
-            )
-        for subj in self.freesurfer_dir.glob("sub-*"):
-            try:
-                stats = freesurfer_anatomical_parcellation(
-                    self.freesurfer_dir, subj.name, parcellation_scheme, gcs
-                )
-                stats["subcortex"] = {}
-                # stats["table"] =
-                freesurfer_metrics[subj.name] = stats
-            except:
-                logging.error(
-                    f"Failed parcellating {subj.name} Freesurfer-derived data..."
-                )
-                continue
-        return freesurfer_metrics
-
-    def collect_freesurfer_metrics(
-        self, parcellation_scheme: str, force: bool = True
-    ) -> dict:
-        """
-        Utilizes Freesurfer's aparcstats2table to group different Freesurfer-derived across subjects according to *parcellation_scheme*
-
-        Parameters
-        ----------
-        parcellation_scheme : str
-            A string representing existing key within *self.parcellations*.
-
-        Returns
-        -------
-        dict
-            A dictionary containing the location of all files with freesurfer-derived metrics stored in them.
-        """
-        destination = self.destination / parcellation_scheme / "smri" / "tmp"
-        subjects_metrics = self.generate_freesurfer_metrics(
-            parcellation_scheme
+        parcellation_image = self.parcellations.get(parcellation_scheme).get(
+            "path"
         )
-        group_wise_data = group_freesurfer_metrics(
-            list(subjects_metrics.keys()),
-            destination,
-            parcellation_scheme,
-            force,
+        logging.info(
+            f"Transforming {parcellation_scheme} atlas from standard to subject {participant_label}'s individual space."
         )
-        return group_wise_data
 
-    def collect_tensors_metrics(
+        runner = ApplyTransforms(
+            input_image=parcellation_image,
+            reference_image=reference,
+            transforms=mni2native_transform,
+            output_image=str(out_whole_brain),
+            **self.APPLY_TRANSFORM_KWARGS,
+        )
+        runner.run()
+
+    def crop_to_probseg(
         self,
         parcellation_scheme: str,
-        cropped_to_gm: bool = True,
+        participant_label: str,
+        whole_brain: Path,
+        probseg: Path,
+        out_cropped: Path,
+        masking_threshold: float,
         force: bool = False,
-        analysis_type: str = "dmriprep",
-        np_operation: str = "nanmean",
-    ) -> pd.DataFrame:
-        """Parcellates tensor-derived metrics according to *parcellation_scheme*
-
-        Parameters
-        ----------
-        parcellation_scheme : str
-            A string representing existing key within *self.parcellations*.
-
-        Returns
-        -------
-        pd.DataFrame
-            A dictionary with representing subjects, and values containing paths to subjects-space parcellations.
-        """
-        parcels = self.parcellations.get(parcellation_scheme).get("parcels")
-        parcellations = self.register_parcellation_scheme(
-            analysis_type, parcellation_scheme, cropped_to_gm
-        )
-        multi_column = pd.MultiIndex.from_product(
-            [parcels.index, self.TENSOR_METRICS]
-        )
-        if analysis_type == "qsiprep":
-            estimate_tensors(parcellations, self.qsiprep_dir, multi_column)
-        return parcellate_tensors(
-            self.locate_outputs(analysis_type),
-            multi_column,
-            parcellations,
-            parcels,
-            parcellation_scheme,
-            cropped_to_gm,
-            force,
-            np_operation,
-        )
-
-    def run_all(
-        self,
-        parcellation_scheme: str,
-        force: bool = False,
-        operation: str = "nanmean",
     ):
-        """
-        Run all available parcellation methods
-
-        Parameters
-        ----------
-        parcellation_scheme : str
-            Parcellation scheme representing an existing key in *self.parcellations*
-        """
-        target = self.destination / parcellation_scheme
-        for out_file, function in zip(
-            [f"dmri/tensors_meas-{operation.replace('nan','')}.csv"],
-            [self.collect_tensors_metrics],
-        ):
-            data = function(parcellation_scheme, force=force)
-            destination = target / out_file
-            destination.parent.mkdir(exist_ok=True, parents=True)
-            data.to_csv(destination)
-
-    @property
-    def dmriprep_dir(self) -> Path:
-        """
-        Locates the location of *dmriprep* outputs under *self.base_dir*
-
-        Returns
-        -------
-        Path
-            *dmriprep* outputs' directory.
-        """
-        return self.locate_outputs("dmriprep")
-
-    @property
-    def fmriprep_dir(self) -> Path:
-        """
-        Locates the location of *fmriprep* outputs under *self.base_dir*
-
-        Returns
-        -------
-        Path
-            *fmriprep* outputs' directory.
-        """
-        return self.locate_outputs("fmriprep")
-
-    @property
-    def qsiprep_dir(self) -> Path:
-        """
-        Locates the location of *qsiprep* outputs under *self.base_dir*
-
-        Returns
-        -------
-        Path
-            *qsiprep* outputs' directory.
-        """
-        return self.locate_outputs("qsiprep")
-
-    @property
-    def freesurfer_dir(self) -> Path:
-        """
-        Locates the location of *freesurfer* outputs under *self.base_dir*
-
-        Returns
-        -------
-        Path
-            *freesurfer* outputs' directory.
-        """
-        freesurfer_dir = self.locate_outputs("freesurfer")
-        if freesurfer_dir.exists():
-            os.environ["SUBJECTS_DIR"] = str(freesurfer_dir)
-        return freesurfer_dir
+        mask = probseg.with_name(probseg.name.replace("probseg", "mask"))
+        if mask.exists() and out_cropped.exists() and not force:
+            logging.info(
+                f"""{parcellation_scheme} atlas was cropped to subject {participant_label}'s gray matter space.\n
+                To re-run this process, pass force=True as a keyword arguement."""
+            )
+            return
+        threshold_runner = fsl.Threshold(
+            in_file=probseg,
+            thresh=masking_threshold,
+            out_file=mask,
+            **self.THRESHOLD_KWARGS,
+        )
+        threshold_runner.run()
+        masking_runner = fsl.ApplyMask(
+            in_file=whole_brain,
+            mask_file=mask,
+            out_file=out_cropped,
+            **self.MASKING_KWARGS,
+        )
+        masking_runner.run()
