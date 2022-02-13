@@ -34,12 +34,17 @@ class QsiprepResults(AnalysisResults):
     NATIVE_PARCELLATION_QUERY = ["anat", "epi"]
     LOGGING_DESTINATION = DEFAULT_DESTINATION
     LOGGER_FILE = "parcellation_{timestamp}.log"
+
     #: Analysis type
     ANALYSIS_TYPE = "qsiprep"
+
+    #: Workflows
+    TENSOR_ESTIMATION_NAME = "tensor_estimation"
 
     def __init__(
         self,
         base_dir: Path,
+        work_dir: Path = None,
         available_parcellations: dict = PARCELLATIONS,
     ) -> None:
         super().__init__(base_dir)
@@ -49,6 +54,7 @@ class QsiprepResults(AnalysisResults):
         self.utils = QsiPrepUtils(
             base_dir, self.logging_destination, available_parcellations
         )
+        self.work_dir = work_dir or self.base_dir.parent.parent / "work"
 
     def get_native_parcellation_names(
         self, parcellation_scheme: str, reference: Path, reference_type: str
@@ -160,6 +166,43 @@ class QsiprepResults(AnalysisResults):
                     key,
                 ] = flag
         return dataset_query
+
+    def get_tensor_work_directory(self) -> Path:
+        """
+        Initiates a working directory to store all tensor estimation workflows.
+
+        Returns
+        -------
+        Path
+            Path to a working directory
+        """
+        work_dir = self.work_dir / self.TENSOR_ESTIMATION_NAME
+        work_dir.mkdir(exist_ok=True, parents=True)
+        return work_dir
+
+    def estimate_tensor_metrics(self):
+        """
+        Performs tensor estimation and metrics' computation for all available subjects.
+        """
+        for participant_label, sessions in tqdm.tqdm(self.subjects.items()):
+            self.utils.estimate_tensor_metrics(
+                self.base_dir.parent,
+                participant_label,
+                sessions,
+                self.tensor_work_directory,
+            )
+
+    @property
+    def tensor_work_directory(self) -> Path:
+        """
+        Path to a working directory to store all tensor estimation workflows
+
+        Returns
+        -------
+        Path
+            a working directory to store all tensor estimation workflows
+        """
+        return self.get_tensor_work_directory()
 
     # def convert_to_mif
     # def to_dataframe(

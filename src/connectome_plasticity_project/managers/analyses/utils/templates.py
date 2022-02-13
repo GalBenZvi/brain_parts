@@ -16,6 +16,18 @@ BIDS_NAMING_TEMPLATE = {
     "atlas": "atlas",
 }
 
+TENSOR_DERIVED_METRICS = {
+    "adc": "apparent diffusion coefficient",
+    "fa": "fractional anisotropy",
+    "ad": "axial diffusivity",
+    "rd": "radial diffusivity",
+    "cl": "Westing linearity",
+    "cp": "Westing planarity",
+    "cs": "Westing sphericity",
+    "evec": "Eigenvalue",
+    "eval": "Eigenvector",
+}
+
 
 class DmriPrep(Enum):
     ANATOMICAL_TEMPLATES = [
