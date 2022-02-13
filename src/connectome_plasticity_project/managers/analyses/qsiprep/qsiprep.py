@@ -3,12 +3,14 @@ import logging.config
 from pathlib import Path
 from typing import List
 
-import nipype.pipeline.engine as pe
 import pandas as pd
 import tqdm
 
 from connectome_plasticity_project.managers.analyses.analysis import (
     AnalysisResults,
+)
+from connectome_plasticity_project.managers.analyses.qsiprep.utils import (
+    QsiPrepUtils,
 )
 from connectome_plasticity_project.managers.analyses.utils.data_grabber import (
     DataGrabber,
@@ -41,16 +43,11 @@ class QsiprepResults(AnalysisResults):
         available_parcellations: dict = PARCELLATIONS,
     ) -> None:
         super().__init__(base_dir)
-        self.data_grabber = DataGrabber(
-            base_dir, analysis_type=self.ANALYSIS_TYPE
-        )
         self.logging_destination = Path(
             self.LOGGING_DESTINATION.format(analysis_type=self.ANALYSIS_TYPE)
         )
-        self.available_parcellations = available_parcellations
-        self.templates = TEMPLATES.get(self.ANALYSIS_TYPE)
-        self.parcellation_manager = Parcellation(
-            self.logging_destination, self.available_parcellations
+        self.utils = QsiPrepUtils(
+            base_dir, self.logging_destination, available_parcellations
         )
 
     def get_native_parcellation_names(
@@ -118,7 +115,8 @@ class QsiprepResults(AnalysisResults):
         Tuple[bool,bool]
             Whether registration of atlas to anatomical and EPI (accordingly) spaces was successful
         """
-        anat = self.register_parcellation_to_anatomical(
+        prob_mask_threshold = prob_mask_threshold or self.PROBSEG_THRESHOLD
+        anat = self.utils.register_parcellation_to_anatomical(
             parcellation_scheme,
             participant_label,
             sessions,
@@ -126,146 +124,14 @@ class QsiprepResults(AnalysisResults):
             force,
         )
         if anat:
-            epi = self.register_parcellation_to_epi(
+            epi = self.utils.register_parcellation_to_epi(
                 parcellation_scheme, participant_label, sessions, force
             )
         else:
             epi = False
         return anat, epi
 
-    def register_parcellation_to_anatomical(
-        self,
-        parcellation_scheme: str,
-        participant_label: str,
-        sessions: list,
-        prob_mask_threshold: float = None,
-        force: bool = False,
-    ) -> bool:
-        """
-        Register *parcellation_scheme* to *participant_label*'s anatomical space, and crop to gray matter.
-
-        Parameters
-        ----------
-        parcellation_scheme : str
-            A string representing existing key within *self.parcellations*.
-        participant_label : str
-            A string representing an available subject in *self.base_dir*
-        sessions : list
-            A list of available sessions for *participant_label*
-        prob_mask_threshold : float, optional
-            Probability masking threshold, by default None
-        force : bool, optional
-            Whether to perform operation even if output exists, by default False
-
-        Returns
-        -------
-        bool
-            Whether registration was successful
-        """
-        try:
-            references, _, _ = self.data_grabber.locate_anatomical_references(
-                participant_label, sessions
-            )
-        except FileNotFoundError:
-            logging.warning(
-                f"""Found missing required files for participant {participant_label}. 
-            Can't register parcellation to its native space."""
-            )
-            return False
-        prob_mask_threshold = prob_mask_threshold or self.PROBSEG_THRESHOLD
-        reference, mni2native_transform, probseg = [
-            references.get(key.lower())
-            for key in self.templates.ANATOMICAL_TEMPLATES.value
-        ]
-        whole_brain, gm_cropped = self.get_native_parcellation_names(
-            parcellation_scheme,
-            references.get("anatomical_reference"),
-            "anatomical",
-        )
-        self.parcellation_manager.register_parcellation_scheme(
-            parcellation_scheme,
-            participant_label,
-            reference,
-            mni2native_transform,
-            whole_brain,
-            force,
-        )
-        self.parcellation_manager.crop_to_probseg(
-            parcellation_scheme,
-            participant_label,
-            whole_brain,
-            probseg,
-            gm_cropped,
-            prob_mask_threshold,
-            force,
-        )
-        return True
-
-    def register_parcellation_to_epi(
-        self,
-        parcellation_scheme: str,
-        participant_label: str,
-        sessions: list,
-        force: bool = False,
-    ) -> bool:
-        """
-        Register *parcellation_scheme* to *participant_label*'s EPI space
-
-        Parameters
-        ----------
-        parcellation_scheme : str
-            A string representing existing key within *self.parcellations*.
-        participant_label : str
-            A string representing an available subject in *self.base_dir*
-        sessions : list
-            A list of available sessions for *participant_label*
-        force : bool, optional
-            Whether to perform operation even if output exists, by default False
-
-        Returns
-        -------
-        bool
-            Whether registration was successful
-        """
-        (
-            anatomical_references,
-            _,
-            _,
-        ) = self.data_grabber.locate_anatomical_references(
-            participant_label, sessions
-        )
-        for session in sessions:
-            try:
-                reference, _, _ = self.data_grabber.locate_epi_references(
-                    participant_label, session
-                )
-            except FileNotFoundError:
-                logging.warning(
-                    f"""Found missing required files for participant {participant_label}. 
-                Can't register parcellation to its native space."""
-                )
-                return False
-            reference = reference.get("native_epi_reference")
-            mni2native_transform = anatomical_references.get(
-                "mni_to_native_transformation"
-            )
-
-            whole_brain, _ = self.get_native_parcellation_names(
-                parcellation_scheme,
-                reference,
-                "epi",
-            )
-            self.parcellation_manager.register_parcellation_scheme(
-                parcellation_scheme,
-                participant_label,
-                reference,
-                mni2native_transform,
-                whole_brain,
-                force,
-            )
-        return True
-
-    def get_registered_anatomical_parcellations(
+    def get_registered_parcellations(
         self,
         parcellation_scheme: str,
         prob_mask_threshold: float = None,
@@ -295,6 +161,7 @@ class QsiprepResults(AnalysisResults):
                 ] = flag
         return dataset_query
 
+    # def convert_to_mif
     # def to_dataframe(
     #     self,
     #     parcellation_scheme: str,

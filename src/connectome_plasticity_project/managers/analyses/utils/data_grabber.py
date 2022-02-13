@@ -157,7 +157,7 @@ class DataGrabber:
 
     def build_derivatives_name(
         self,
-        reference: dict,
+        reference: Path,
         **kwargs,
     ) -> Path:
         """
@@ -165,7 +165,7 @@ class DataGrabber:
 
         Parameters
         ----------
-        reference : dict
+        reference : Path
             A reference file ("source file" in DerivativesDataSink)
 
         Returns
