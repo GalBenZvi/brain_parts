@@ -74,6 +74,7 @@ class DataGrabber:
         pattern: str,
         format: dict = None,
         return_list: bool = False,
+        raise_not_found: bool = True,
     ) -> Union[list, Path]:
         """
         Search for a *pattern* within *base_dir* with given a *format*.
@@ -104,11 +105,14 @@ class DataGrabber:
         else:
             result = [f for f in base_dir.glob(pattern)]
         if not result:
-            raise FileNotFoundError(
-                INVALID_PATTERN.format(
-                    base_dir=base_dir, pattern=pattern, format=format
+            if raise_not_found:
+                raise FileNotFoundError(
+                    INVALID_PATTERN.format(
+                        base_dir=base_dir, pattern=pattern, format=format
+                    )
                 )
-            )
+            else:
+                return
         return result if return_list else result[0]
 
     def locate_anatomical_references(
@@ -157,7 +161,7 @@ class DataGrabber:
 
     def build_derivatives_name(
         self,
-        reference: dict,
+        reference: Path,
         **kwargs,
     ) -> Path:
         """
@@ -165,7 +169,7 @@ class DataGrabber:
 
         Parameters
         ----------
-        reference : dict
+        reference : Path
             A reference file ("source file" in DerivativesDataSink)
 
         Returns
