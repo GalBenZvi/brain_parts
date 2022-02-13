@@ -194,6 +194,7 @@ class DataGrabber:
     def build_derivatives_name(
         self,
         reference: Path,
+        ignore_entities: list = [],
         **kwargs,
     ) -> Path:
         """
@@ -213,6 +214,8 @@ class DataGrabber:
         updated_entities = entities.copy()
         for key, val in kwargs.items():
             updated_entities[key] = val
+            if key in ignore_entities:
+                del updated_entities[key]
         parts = []
         for key, val in BIDS_NAMING_TEMPLATE.items():
             if key in updated_entities:

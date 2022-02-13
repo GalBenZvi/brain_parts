@@ -220,6 +220,7 @@ class QsiprepResults(AnalysisResults):
     def to_dataframe(
         self,
         parcellation_scheme: str,
+        cropped_to_gm: bool = False,
         force: bool = False,
         np_operation: str = "nanmean",
     ) -> pd.DataFrame:
@@ -241,16 +242,23 @@ class QsiprepResults(AnalysisResults):
         multi_column = pd.MultiIndex.from_product(
             [parcels.index, TENSOR_DERIVED_METRICS.keys()]
         )
-        return parcellate_tensors(
-            self.locate_outputs(analysis_type),
-            multi_column,
-            parcellations,
-            parcels,
-            parcellation_scheme,
-            cropped_to_gm,
-            force,
-            np_operation,
+        data = pd.DataFrame()
+        logging.info(
+            f"Parcellating participants' tensor-derived data according to {parcellation_scheme}..."
         )
+        for participant_label, sessions in tqdm.tqdm(self.subjects.items()):
+            tmp = self.utils.parcellate_subject_data(
+                parcellation_scheme,
+                parcels,
+                participant_label,
+                sessions,
+                multi_column=multi_column,
+                cropped_to_gm=cropped_to_gm,
+                force=force,
+                np_operation=np_operation,
+            )
+            data = pd.concat([data, tmp])
+        return data
 
     @property
     def tensor_work_directory(self) -> Path:

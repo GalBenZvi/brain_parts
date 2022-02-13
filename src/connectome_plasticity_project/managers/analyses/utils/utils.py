@@ -13,6 +13,8 @@ from connectome_plasticity_project.managers.analyses.utils.parcellations import 
 )
 from connectome_plasticity_project.managers.analyses.utils.templates import (
     TEMPLATES,
+    TENSOR_DERIVED_METRICS,
+    TENSOR_METRICS_FILES_TEMPLATE,
     TENSOR_METRICS_OUTPUT_TEMPLATE,
 )
 
@@ -38,6 +40,7 @@ class AnalysisUtils:
         self.templates = TEMPLATES.get(analysis_type)
 
     def parcellate_image(
+        self,
         atlas: Path,
         image: Path,
         parcels: pd.DataFrame,
@@ -77,15 +80,15 @@ class AnalysisUtils:
 
         return out
 
-    def parcellate_subject_tensors(
+    def parcellate_session_tensors(
         self,
         parcellation_scheme: str,
         parcels: pd.DataFrame,
         participant_label: str,
         session: str,
-        native_atlas: Path,
         multi_column: pd.MultiIndex,
-        cropped_to_gm: bool = True,
+        native_atlas: Path = None,
+        cropped_to_gm: bool = False,
         force: bool = False,
         np_operation: str = "nanmean",
     ):
@@ -112,43 +115,106 @@ class AnalysisUtils:
         pd.DataFrame
             A dataframe containing all of *participant_label*'s data, parcellated by *parcellation_scheme*.
         """
-        subj_data = pd.Series(index=multi_column)
-        reference, dwi_dir, prefix = self.data_grabber.locate_epi_references(
+        logging.info(f"\t ses-{session}")
+        session_data = pd.Series(index=multi_column, name=session)
+
+        reference, _, _ = self.data_grabber.locate_epi_references(
             participant_label, session, raise_not_found=False
         )
-        out_file = self.data_grabber.search_for_file(
-            dwi_dir,
-            TENSOR_METRICS_OUTPUT_TEMPLATE,
-            {"prefix": prefix, "parcellation_scheme": parcellation_scheme},
-        )
-        out_file = dwi_dir / TENSOR_METRICS_OUTPUT_TEMPLATE.format(
-            participant_label=participant_label,
-            session=session,
-            parcellation_scheme=parcellation_scheme,
+
+        reference = reference.get("native_epi_reference")
+        if not reference:
+            return
+        target_kwargs = dict(
+            **TENSOR_METRICS_OUTPUT_TEMPLATE,
+            atlas=parcellation_scheme,
             measure=np_operation.replace("nan", ""),
         )
         if cropped_to_gm:
-            out_name = out_file.name.split("_")
-            out_name.insert(3, "label-GM")
-            out_file = out_file.parent / "_".join(out_name)
+            target_kwargs["label"] = "GM"
+        if not native_atlas:
+            native_atlas = self.locate_native_atlas(
+                reference, parcellation_scheme, cropped_to_gm
+            )
+
+        out_file = self.data_grabber.build_derivatives_name(
+            reference, **target_kwargs
+        )
         if out_file.exists() and not force:
-            data = pd.read_csv(out_file, index_col=[0, 1], header=[0, 1])
-            subj_data.loc[(participant_label, session)] = data.T.loc[
-                (participant_label, session)
-            ]
+            session_data = pd.read_csv(out_file, index_col=[0, 1]).squeeze()
+
         else:
-            for metric in multi_column.levels[-1]:
-                logging.info(metric)
-                metric_file = TENSOR_METRICS_FILES_TEMPLATE.format(
-                    dmriprep_dir=dmriprep_dir,
-                    participant_label=participant_label,
-                    session=session,
-                    metric=metric.lower(),
+            for metric in TENSOR_DERIVED_METRICS:
+                logging.info(f"\t\t {metric}")
+                metric_file = self.data_grabber.build_derivatives_name(
+                    reference, desc=metric, **TENSOR_METRICS_FILES_TEMPLATE
                 )
-                subj_data.loc[
-                    (participant_label, session), (slice(None), metric)
-                ] = parcellate_image(
-                    image, metric_file, parcels, np_operation
+                session_data.loc[slice(None), metric] = self.parcellate_image(
+                    native_atlas, metric_file, parcels, np_operation
                 ).values
-            subj_data.loc[(participant_label, session)].to_csv(out_file)
-        return subj_data
+            session_data.to_csv(out_file)
+        return session_data
+
+    def locate_native_atlas(
+        self,
+        reference: Path,
+        parcellation_scheme: str,
+        cropped_to_gm: bool = False,
+        reference_type: str = "epi",
+    ) -> Path:
+        """
+        Locates a native parcellation that corresponds to *reference* space.
+
+        Parameters
+        ----------
+        reference : Path
+            [description]
+        cropped_to_gm : bool, optional
+            [description], by default False
+
+        Returns
+        -------
+        Path
+            [description]
+        """
+        atlas_kwargs = (
+            self.templates.NATIVE_PARCELLATION_NAMING_KWARGS.value.get(
+                reference_type
+            )
+        )
+        if cropped_to_gm:
+            atlas_kwargs["label"] = "GM"
+        return self.data_grabber.build_derivatives_name(
+            reference, **atlas_kwargs, atlas=parcellation_scheme
+        )
+
+    def parcellate_subject_data(
+        self,
+        parcellation_scheme: str,
+        parcels: pd.DataFrame,
+        participant_label: str,
+        sessions: list,
+        multi_column: pd.MultiIndex,
+        cropped_to_gm: bool = False,
+        force: bool = False,
+        np_operation: str = "nanmean",
+    ) -> pd.DataFrame:
+        logging.info(f"sub-{participant_label}")
+        multi_index = pd.MultiIndex.from_product(
+            [[participant_label], sessions]
+        )
+        data = pd.DataFrame(index=multi_index, columns=multi_column)
+        for session in sessions:
+            data.loc[
+                (participant_label, session)
+            ] = self.parcellate_session_tensors(
+                parcellation_scheme,
+                parcels,
+                participant_label,
+                session,
+                multi_column,
+                cropped_to_gm=cropped_to_gm,
+                force=force,
+                np_operation=np_operation,
+            )
+        return data
