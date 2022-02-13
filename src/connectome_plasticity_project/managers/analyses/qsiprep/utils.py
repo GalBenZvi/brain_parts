@@ -234,18 +234,16 @@ class QsiPrepUtils(AnalysisUtils):
                 )
         return wf
 
-    def locate_precomputed_tensors(
-        self, participant_label: str, session: str
-    ) -> dict:
+    def locate_precomputed_tensors(self, dwi_dir: Path, prefix: str) -> dict:
         """
         Locates precomputed tensor-derived metrics to avoid unneccesary computations
 
         Parameters
         ----------
-        participant_label : str
-            A string representing an available subject in *self.base_dir*
-        session : str
-            An available sessions for *participant_label*
+        dwi_dir : Path
+            A path to a directory that stores all DWI-related preprocessed data
+        prefix : str
+            The genereal prefix of preprocessed files with *dwi_dir* (sub-xxx_ses-xxx format)
 
         Returns
         -------
@@ -256,9 +254,6 @@ class QsiPrepUtils(AnalysisUtils):
         for key, value in TENSOR_DERIVED_METRICS.items():
             computed[key] = {}
             computed[key]["description"] = value
-            _, dwi_dir, prefix = self.data_grabber.locate_epi_references(
-                participant_label, session
-            )
             exists = self.data_grabber.search_for_file(
                 dwi_dir, f"{prefix}*desc-{key}*.nii.gz", raise_not_found=False
             )
@@ -293,14 +288,19 @@ class QsiPrepUtils(AnalysisUtils):
         work_dir.mkdir(exist_ok=True)
         # base_wf = init_tensor_wf()
         for session in sessions:
-            computed = self.locate_precomputed_tensors(
-                participant_label, session
+            (
+                references,
+                dwi_dir,
+                prefix,
+            ) = self.data_grabber.locate_epi_references(
+                participant_label, session, raise_not_found=False
             )
-            if not all([key["exists"] for key in computed.values()]):
-                references, _, _ = self.data_grabber.locate_epi_references(
-                    participant_label, session
-                )
-                dwi_file = references.get("native_epi_reference")
+            dwi_file = references.get("native_epi_reference")
+            computed = self.locate_precomputed_tensors(dwi_dir, prefix)
+            if (
+                not all([key["exists"] for key in computed.values()])
+                and dwi_file
+            ):
                 grad_file = dwi_file.with_name(
                     dwi_file.name.split(".")[0] + ".b"
                 )

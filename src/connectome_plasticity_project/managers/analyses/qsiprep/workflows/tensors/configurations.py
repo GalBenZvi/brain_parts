@@ -3,6 +3,7 @@ Configurations for *preprocessing* pipeline.
 """
 from connectome_plasticity_project.managers.analyses.utils.templates import (
     TENSOR_DERIVED_METRICS,
+    TENSOR_METRICS_FILES_TEMPLATE,
 )
 
 #: i/o
@@ -16,4 +17,4 @@ TENSOR2METRIC_KWARGS = {
 LISTIFY_KWARGS = dict(numinputs=len(TENSOR_DERIVED_METRICS.keys()))
 
 #: Tensor namings
-TENSOR_NAMING_KWARGS = dict(suffix="epiref", resolution="dwi", compress=True)
+TENSOR_NAMING_KWARGS = dict(**TENSOR_METRICS_FILES_TEMPLATE, compress=True)

@@ -4,6 +4,7 @@ from pathlib import Path
 BIDS_NAMING_TEMPLATE = {
     "subject": "sub",
     "session": "ses",
+    "direction": "dir",
     "acquisition": "acq",
     "ceagent": "ce",
     "reconstruction": "rec",
@@ -14,6 +15,7 @@ BIDS_NAMING_TEMPLATE = {
     "label": "label",
     "desc": "desc",
     "atlas": "atlas",
+    "measure": "meas",
 }
 
 TENSOR_DERIVED_METRICS = {
@@ -27,6 +29,10 @@ TENSOR_DERIVED_METRICS = {
     "evec": "Eigenvalue",
     "eval": "Eigenvector",
 }
+
+
+TENSOR_METRICS_FILES_TEMPLATE = dict(suffix="epiref", resolution="dwi")
+TENSOR_METRICS_OUTPUT_TEMPLATE = dict(desc="TensorMetrics", extension=".csv")
 
 
 class DmriPrep(Enum):

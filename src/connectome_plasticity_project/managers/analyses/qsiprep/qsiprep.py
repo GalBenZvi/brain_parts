@@ -20,6 +20,7 @@ from connectome_plasticity_project.managers.analyses.utils.parcellations import 
 )
 from connectome_plasticity_project.managers.analyses.utils.templates import (
     TEMPLATES,
+    TENSOR_DERIVED_METRICS,
 )
 from connectome_plasticity_project.managers.analyses.utils.utils import (
     DEFAULT_DESTINATION,
@@ -192,6 +193,73 @@ class QsiprepResults(AnalysisResults):
                 self.tensor_work_directory,
             )
 
+    def collect_additional_derivatives(
+        self,
+        parcellation_scheme: str = "brainnetome",
+        prob_mask_threshold: float = None,
+        force: bool = False,
+    ):
+        """
+        Collects all additional derivatives for *qsiprep*, including registered-to-native *parcellation_scheme* and tensor-derived metrics.
+
+        Parameters
+        ----------
+        parcellation_scheme : str, optional
+            A string representing existing key within *self.parcellations*., by default "brainnetome"
+        prob_mask_threshold : float, optional
+            Probability masking threshold, by default None
+        force : bool, optional
+            Whether to perform operation even if output exists, by default False
+        """
+
+        q = self.get_registered_parcellations(
+            parcellation_scheme, prob_mask_threshold, force
+        )
+        self.estimate_tensor_metrics()
+
+    def to_dataframe(
+        self,
+        parcellation_scheme: str,
+        cropped_to_gm: bool = False,
+        force: bool = False,
+        np_operation: str = "nanmean",
+    ) -> pd.DataFrame:
+        """Parcellates tensor-derived metrics according to *parcellation_scheme*
+
+        Parameters
+        ----------
+        parcellation_scheme : str
+            A string representing existing key within *self.parcellations*.
+
+        Returns
+        -------
+        pd.DataFrame
+            A dictionary with representing subjects, and values containing paths to subjects-space parcellations.
+        """
+        parcels = self.available_parcellations.get(parcellation_scheme).get(
+            "parcels"
+        )
+        multi_column = pd.MultiIndex.from_product(
+            [parcels.index, TENSOR_DERIVED_METRICS.keys()]
+        )
+        data = pd.DataFrame()
+        logging.info(
+            f"Parcellating participants' tensor-derived data according to {parcellation_scheme}..."
+        )
+        for participant_label, sessions in tqdm.tqdm(self.subjects.items()):
+            tmp = self.utils.parcellate_subject_data(
+                parcellation_scheme,
+                parcels,
+                participant_label,
+                sessions,
+                multi_column=multi_column,
+                cropped_to_gm=cropped_to_gm,
+                force=force,
+                np_operation=np_operation,
+            )
+            data = pd.concat([data, tmp])
+        return data
+
     @property
     def tensor_work_directory(self) -> Path:
         """
@@ -203,43 +271,3 @@ class QsiprepResults(AnalysisResults):
             a working directory to store all tensor estimation workflows
         """
         return self.get_tensor_work_directory()
-
-    # def convert_to_mif
-    # def to_dataframe(
-    #     self,
-    #     parcellation_scheme: str,
-    #     cropped_to_gm: bool = True,
-    #     force: bool = False,
-    #     np_operation: str = "nanmean",
-    # ) -> pd.DataFrame:
-    #     """Parcellates tensor-derived metrics according to *parcellation_scheme*
-
-    #     Parameters
-    #     ----------
-    #     parcellation_scheme : str
-    #         A string representing existing key within *self.parcellations*.
-
-    #     Returns
-    #     -------
-    #     pd.DataFrame
-    #         A dictionary with representing subjects, and values containing paths to subjects-space parcellations.
-    #     """
-    #     parcels = self.parcellations.get(parcellation_scheme).get("parcels")
-    #     parcellations = self.register_parcellation_scheme(
-    #         analysis_type, parcellation_scheme, cropped_to_gm
-    #     )
-    #     multi_column = pd.MultiIndex.from_product(
-    #         [parcels.index, self.TENSOR_METRICS]
-    #     )
-    #     if analysis_type == "qsiprep":
-    #         estimate_tensors(parcellations, self.qsiprep_dir, multi_column)
-    #     return parcellate_tensors(
-    #         self.locate_outputs(analysis_type),
-    #         multi_column,
-    #         parcellations,
-    #         parcels,
-    #         parcellation_scheme,
-    #         cropped_to_gm,
-    #         force,
-    #         np_operation,
-    #     )
