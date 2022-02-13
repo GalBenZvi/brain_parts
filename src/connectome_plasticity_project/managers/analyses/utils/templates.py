@@ -28,6 +28,9 @@ TENSOR_DERIVED_METRICS = {
     "eval": "Eigenvector",
 }
 
+TENSOR_METRICS_FILES_TEMPLATE = "{prefix}*desc-{metric}_epiref.nii.gz"  # noqa
+TENSOR_METRICS_OUTPUT_TEMPLATE = "{prefix}*desc-TensorMetrics_atlas-{parcellation_scheme}_meas-{measure}.csv"  # noqa
+
 
 class DmriPrep(Enum):
     ANATOMICAL_TEMPLATES = [

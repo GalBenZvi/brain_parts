@@ -89,6 +89,8 @@ class DataGrabber:
             Formatting of *pattern*.
         return_list : bool, optional
             Whether to return a list of located files or a single file, by default False
+        raise_not_found: bool, optional,
+            Whether to raise an error due to missing files, by default True
 
         Returns
         -------
@@ -116,15 +118,27 @@ class DataGrabber:
         return result if return_list else result[0]
 
     def locate_anatomical_references(
-        self, participant_label: str, sessions: list
+        self,
+        participant_label: str,
+        sessions: list,
+        raise_not_found: bool = True,
     ):
         """
         Locates subjects' preprocessed anatomical reference
 
         Parameters
         ----------
-        output_dir : Path
-            An output (derivatives) directort of either *fmriprep* or *dmriprep*
+        participant_label : str
+            A string representing an available subject in *self.base_dir*
+        sessions : list
+            A list of available sessions for *participant_label*
+        raise_not_found: bool, optional,
+            Whether to raise an error due to missing files, by default True
+
+        Returns
+        -------
+        [type]
+            [description]
         """
         anat_dir, prefix = self.locate_anatomical_directory(
             participant_label, sessions
@@ -132,18 +146,34 @@ class DataGrabber:
         references = {}
         for key in self.templates.ANATOMICAL_TEMPLATES.value:
             pattern = prefix + self.templates[key].value
-            result = self.search_for_file(anat_dir, pattern, None)
+            result = self.search_for_file(
+                anat_dir, pattern, None, raise_not_found=raise_not_found
+            )
             references[key.lower()] = result
         return references, anat_dir, prefix
 
-    def locate_epi_references(self, participant_label: str, session: str):
+    def locate_epi_references(
+        self,
+        participant_label: str,
+        session: str,
+        raise_not_found: bool = True,
+    ):
         """
-        Locates subjects' preprocessed anatomical reference
+        Locates subjects' preprocessed EPI reference
 
         Parameters
         ----------
-        output_dir : Path
-            An output (derivatives) directort of either *fmriprep* or *dmriprep*
+        participant_label : str
+            A string representing an available subject in *self.base_dir*
+        sessions : str
+            An available sessions for *participant_label*
+        raise_not_found: bool, optional,
+            Whether to raise an error due to missing files, by default True
+
+        Returns
+        -------
+        [type]
+            [description]
         """
         dwi_dir = (
             self.base_dir
@@ -155,7 +185,9 @@ class DataGrabber:
         references = {}
         for key in self.templates.EPI_TEMPLATES.value:
             pattern = prefix + self.templates[key].value
-            result = self.search_for_file(dwi_dir, pattern, None)
+            result = self.search_for_file(
+                dwi_dir, pattern, None, raise_not_found=raise_not_found
+            )
             references[key.lower()] = result
         return references, dwi_dir, prefix
 
