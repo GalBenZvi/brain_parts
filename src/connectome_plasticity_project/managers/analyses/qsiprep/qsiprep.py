@@ -128,11 +128,11 @@ class QsiprepResults(AnalysisResults):
             participant_label,
             sessions,
             prob_mask_threshold,
-            force,
+            force=force,
         )
         if anat:
             epi = self.utils.register_parcellation_to_epi(
-                parcellation_scheme, participant_label, sessions, force
+                parcellation_scheme, participant_label, sessions, force=force
             )
         else:
             epi = False
@@ -159,7 +159,7 @@ class QsiprepResults(AnalysisResults):
                 participant_label,
                 sessions,
                 prob_mask_threshold,
-                force,
+                force=force,
             )
             for flag, key in zip([anat, epi], ["anat", "epi"]):
                 dataset_query.loc[
@@ -213,7 +213,7 @@ class QsiprepResults(AnalysisResults):
         """
 
         q = self.get_registered_parcellations(
-            parcellation_scheme, prob_mask_threshold, force
+            parcellation_scheme, prob_mask_threshold, force=force
         )
         self.estimate_tensor_metrics()
 

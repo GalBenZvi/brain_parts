@@ -129,7 +129,7 @@ class AnalysisUtils:
             **TENSOR_METRICS_OUTPUT_TEMPLATE,
             atlas=parcellation_scheme,
             measure=np_operation.replace("nan", ""),
-        )
+        ).copy()
         if cropped_to_gm:
             target_kwargs["label"] = "GM"
         if not native_atlas:
@@ -181,7 +181,7 @@ class AnalysisUtils:
             self.templates.NATIVE_PARCELLATION_NAMING_KWARGS.value.get(
                 reference_type
             )
-        )
+        ).copy()
         if cropped_to_gm:
             atlas_kwargs["label"] = "GM"
         return self.data_grabber.build_derivatives_name(
