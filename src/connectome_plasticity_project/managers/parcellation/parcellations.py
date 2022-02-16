@@ -3,6 +3,8 @@ import logging
 import logging.config
 from pathlib import Path
 
+import nibabel as nib
+from nilearn.image import resample_to_img
 from nipype.interfaces import fsl
 from nipype.interfaces.ants import ApplyTransforms
 
@@ -84,6 +86,36 @@ class Parcellation:
             **self.APPLY_TRANSFORM_KWARGS,
         )
         runner.run()
+
+    def resmaple_to_image(
+        self,
+        parcellation_image: Path,
+        target_image: Path,
+        out_file: Path,
+        interpolation: str = "nearest",
+        **kwargs,
+    ):
+        """
+        A small wrapper around *nilearn.image.resample_to_img*
+
+        Parameters
+        ----------
+        parcellation_image : Path
+            "source_img" to be resampled.
+        target_image : Path
+            "target_img" to resample to.
+        out_file : Path
+            Output path for resampled image.
+        interpolation : str, optional
+            Interpolation to use, since we mostly deal with parcellation images, it's by default "nearest"
+        """
+        resampled = resample_to_img(
+            str(parcellation_image),
+            str(target_image),
+            interpolation=interpolation,
+            **kwargs,
+        )
+        nib.save(resampled, out_file)
 
     def crop_to_probseg(
         self,

@@ -150,6 +150,8 @@ class QsiPrepUtils(AnalysisUtils):
         parcellation_scheme: str,
         participant_label: str,
         sessions: list,
+        anatomical_whole_brain: Path = None,
+        anatomical_gm_cropped: Path = None,
         force: bool = False,
     ) -> bool:
         """
@@ -178,6 +180,15 @@ class QsiPrepUtils(AnalysisUtils):
         ) = self.data_grabber.locate_anatomical_references(
             participant_label, sessions
         )
+        if not anatomical_whole_brain or not anatomical_gm_cropped:
+            (
+                anatomical_whole_brain,
+                anatomical_gm_cropped,
+            ) = self.get_native_parcellation_names(
+                parcellation_scheme,
+                anatomical_references.get("anatomical_reference"),
+                "anatomical",
+            )
         for session in sessions:
             try:
                 reference, _, _ = self.data_grabber.locate_epi_references(
@@ -190,23 +201,21 @@ class QsiPrepUtils(AnalysisUtils):
                 )
                 return False
             reference = reference.get("native_epi_reference")
-            mni2native_transform = anatomical_references.get(
-                "mni_to_native_transformation"
-            )
 
-            whole_brain, _ = self.get_native_parcellation_names(
+            whole_brain, gm_cropped = self.get_native_parcellation_names(
                 parcellation_scheme,
                 reference,
                 "epi",
             )
-            self.parcellation_manager.register_parcellation_scheme(
-                parcellation_scheme,
-                participant_label,
-                reference,
-                mni2native_transform,
-                whole_brain,
-                force,
-            )
+
+            for source, target in zip(
+                [anatomical_whole_brain, anatomical_gm_cropped],
+                [whole_brain, gm_cropped],
+            ):
+                if (not target.exists()) or (force):
+                    self.parcellation_manager.resmaple_to_image(
+                        source, reference, target
+                    )
         return True
 
     def reset_derivatives_base(
