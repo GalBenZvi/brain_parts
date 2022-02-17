@@ -22,9 +22,7 @@ class Parcellation:
     #: Default destination locations
     LOGGER_FILE = "parcellation_{timestamp}.log"
 
-    def __init__(
-        self, destination: Path, parcellations: dict = PARCELLATIONS
-    ) -> None:
+    def __init__(self, destination: Path, parcellations: dict = PARCELLATIONS) -> None:
         """
         Initiate a Parcellation object
 
@@ -39,8 +37,7 @@ class Parcellation:
         self.parcellations = parcellations
         timestamp = datetime.datetime.today().strftime("%Y-%m-%d-%H:%M:%S")
         logging.basicConfig(
-            filename=self.destination
-            / self.LOGGER_FILE.format(timestamp=timestamp),
+            filename=self.destination / self.LOGGER_FILE.format(timestamp=timestamp),
             **LOGGER_CONFIG,
         )
 
@@ -71,9 +68,7 @@ class Parcellation:
             )
             return
 
-        parcellation_image = self.parcellations.get(parcellation_scheme).get(
-            "path"
-        )
+        parcellation_image = self.parcellations.get(parcellation_scheme).get("path")
         logging.info(
             f"Transforming {parcellation_scheme} atlas from standard to subject {participant_label}'s individual space."
         )

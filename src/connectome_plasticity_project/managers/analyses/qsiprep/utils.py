@@ -37,9 +37,7 @@ class QsiPrepUtils(AnalysisUtils):
         self.parcellation_manager = Parcellation(
             logging_destination, self.parcellations
         )
-        self.data_grabber = DataGrabber(
-            base_dir, analysis_type=self.ANALYSIS_TYPE
-        )
+        self.data_grabber = DataGrabber(base_dir, analysis_type=self.ANALYSIS_TYPE)
         self.logging_destination = logging_destination
 
     def get_native_parcellation_names(
@@ -177,9 +175,7 @@ class QsiPrepUtils(AnalysisUtils):
             anatomical_references,
             _,
             _,
-        ) = self.data_grabber.locate_anatomical_references(
-            participant_label, sessions
-        )
+        ) = self.data_grabber.locate_anatomical_references(participant_label, sessions)
         if not anatomical_whole_brain or not anatomical_gm_cropped:
             (
                 anatomical_whole_brain,
@@ -297,22 +293,13 @@ class QsiPrepUtils(AnalysisUtils):
         work_dir.mkdir(exist_ok=True)
         # base_wf = init_tensor_wf()
         for session in sessions:
-            (
-                references,
-                dwi_dir,
-                prefix,
-            ) = self.data_grabber.locate_epi_references(
+            (references, dwi_dir, prefix,) = self.data_grabber.locate_epi_references(
                 participant_label, session, raise_not_found=False
             )
             dwi_file = references.get("native_epi_reference")
             computed = self.locate_precomputed_tensors(dwi_dir, prefix)
-            if (
-                not all([key["exists"] for key in computed.values()])
-                and dwi_file
-            ):
-                grad_file = dwi_file.with_name(
-                    dwi_file.name.split(".")[0] + ".b"
-                )
+            if not all([key["exists"] for key in computed.values()]) and dwi_file:
+                grad_file = dwi_file.with_name(dwi_file.name.split(".")[0] + ".b")
                 wf = init_tensor_wf(f"ses-{session}_tensor_estimation_wf")
                 wf.inputs.inputnode.set(
                     base_directory=base_directory,

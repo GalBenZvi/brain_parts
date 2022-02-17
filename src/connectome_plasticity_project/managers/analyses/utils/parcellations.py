@@ -3,8 +3,12 @@ from pathlib import Path
 import nibabel as nib
 import pandas as pd
 
-BN_IMAGE = Path("/media/groot/Data/Parcellations/MNI/BN_Atlas_274_combined_1mm.nii.gz")
-BN_PARCELS = Path("/media/groot/Data/Parcellations/MNI/BNA_with_cerebellum.csv")
+BN_IMAGE = Path(
+    "/media/groot/Data/Parcellations/MNI/BN_Atlas_274_combined_1mm.nii.gz"
+)
+BN_PARCELS = Path(
+    "/media/groot/Data/Parcellations/MNI/BNA_with_cerebellum.csv"
+)
 PARCELLATIONS = {
     "brainnetome": {
         "path": BN_IMAGE,

@@ -25,13 +25,9 @@ class DataGrabber:
             A string representing the analysis that is stored in *base_dir*
         """
         self.base_dir = Path(base_dir)
-        self.layout = bids.BIDSLayout(
-            base_dir, derivatives=True, validate=False
-        )
+        self.layout = bids.BIDSLayout(base_dir, derivatives=True, validate=False)
         self.templates = TEMPLATES.get(analysis_type)
-        self.longitudinal_sensitive = (
-            self.templates.LONGITUDINAL_SENSITIVE.value
-        )
+        self.longitudinal_sensitive = self.templates.LONGITUDINAL_SENSITIVE.value
 
     def locate_anatomical_directory(
         self,
@@ -63,9 +59,7 @@ class DataGrabber:
                 / f"ses-{sessions[0]}"
                 / "anat"
             )
-            prefix = (
-                f"sub-{participant_label}" + "_" + f"ses-{sessions[0]}" + "_"
-            )
+            prefix = f"sub-{participant_label}" + "_" + f"ses-{sessions[0]}" + "_"
         return anat_dir, prefix
 
     def search_for_file(
@@ -140,9 +134,7 @@ class DataGrabber:
         [type]
             [description]
         """
-        anat_dir, prefix = self.locate_anatomical_directory(
-            participant_label, sessions
-        )
+        anat_dir, prefix = self.locate_anatomical_directory(participant_label, sessions)
         references = {}
         for key in self.templates.ANATOMICAL_TEMPLATES.value:
             pattern = prefix + self.templates[key].value
@@ -175,12 +167,7 @@ class DataGrabber:
         [type]
             [description]
         """
-        dwi_dir = (
-            self.base_dir
-            / f"sub-{participant_label}"
-            / f"ses-{session}"
-            / "dwi"
-        )
+        dwi_dir = self.base_dir / f"sub-{participant_label}" / f"ses-{session}" / "dwi"
         prefix = f"sub-{participant_label}_ses-{session}_"
         references = {}
         for key in self.templates.EPI_TEMPLATES.value:

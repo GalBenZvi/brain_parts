@@ -236,9 +236,7 @@ class QsiprepResults(AnalysisResults):
         pd.DataFrame
             A dictionary with representing subjects, and values containing paths to subjects-space parcellations.
         """
-        parcels = self.available_parcellations.get(parcellation_scheme).get(
-            "parcels"
-        )
+        parcels = self.available_parcellations.get(parcellation_scheme).get("parcels")
         multi_column = pd.MultiIndex.from_product(
             [parcels.index, TENSOR_DERIVED_METRICS.keys()]
         )
