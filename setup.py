@@ -1,16 +1,9 @@
-#!/usr/bin/env python
-# -*- encoding: utf-8 -*-
-
 import io
 import re
 from glob import glob
-from os.path import basename
-from os.path import dirname
-from os.path import join
-from os.path import splitext
+from os.path import basename, dirname, join, splitext
 
-from setuptools import find_packages
-from setuptools import setup
+from setuptools import find_packages, setup
 
 
 def read(*names, **kwargs):
@@ -35,7 +28,7 @@ setup(
     ),
     author="Gal Ben-Zvi",
     author_email="hershkovitz1@mail.tau.ac.il",
-    url="https://github.com/GalBenZvi/connectomeplasticity",
+    url="https://github.com/The-Connectome-Plasticity-Project/connecticity",
     packages=find_packages("src"),
     package_dir={"": "src"},
     py_modules=[splitext(basename(path))[0] for path in glob("src/*.py")],
@@ -75,18 +68,19 @@ setup(
     python_requires=">=3.6",
     install_requires=[
         "click",
+        "nibabel",
+        "nilearn",
+        "nipype",
+        "numpy",
         "pandas",
-        "numpy"
-        # eg: 'aspectlib==1.1.1', 'six>=1.7',
+        "tqdm",
     ],
     extras_require={
-        # eg:
-        #   'rst': ['docutils>=0.11'],
-        #   ':python_version=="2.6"': ['argparse'],
+        "dev": ["black", "flake8"],
     },
     entry_points={
         "console_scripts": [
-            "connectomeplasticity = connectome_plasticity_project.cli:main",
+            "connectomeplasticity = connecticity.cli:main",
         ]
     },
 )
