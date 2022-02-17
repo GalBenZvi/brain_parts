@@ -12,21 +12,14 @@ from connectome_plasticity_project.managers.analyses.analysis import (
 from connectome_plasticity_project.managers.analyses.qsiprep.utils import (
     QsiPrepUtils,
 )
-from connectome_plasticity_project.managers.analyses.utils.data_grabber import (
-    DataGrabber,
-)
 from connectome_plasticity_project.managers.analyses.utils.parcellations import (
     PARCELLATIONS,
 )
 from connectome_plasticity_project.managers.analyses.utils.templates import (
-    TEMPLATES,
     TENSOR_DERIVED_METRICS,
 )
 from connectome_plasticity_project.managers.analyses.utils.utils import (
     DEFAULT_DESTINATION,
-)
-from connectome_plasticity_project.managers.parcellation.parcellations import (
-    Parcellation,
 )
 
 
@@ -236,7 +229,9 @@ class QsiprepResults(AnalysisResults):
         pd.DataFrame
             A dictionary with representing subjects, and values containing paths to subjects-space parcellations.
         """
-        parcels = self.available_parcellations.get(parcellation_scheme).get("parcels")
+        parcels = self.available_parcellations.get(parcellation_scheme).get(
+            "parcels"
+        )
         multi_column = pd.MultiIndex.from_product(
             [parcels.index, TENSOR_DERIVED_METRICS.keys()]
         )
