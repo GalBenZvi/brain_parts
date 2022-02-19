@@ -4,9 +4,11 @@ import pandas as pd
 from dwiprep.dwiprep import DmriPrepManager
 from numpy import isin
 
-from connecticity.utils.preprocessing import FREESURFER_DIR
-from connecticity.utils.preprocessing import SMRIPREP_KWARGS
-from connecticity.utils.preprocessing import THE_BASE_IDENTIFIERS
+from connecticity.utils.preprocessing import (
+    FREESURFER_DIR,
+    SMRIPREP_KWARGS,
+    THE_BASE_IDENTIFIERS,
+)
 
 # bids.config.set_option("extension_initial_dot", True)
 
@@ -69,7 +71,9 @@ class DmriManager:
         participant_id : str
             Participant's identifier
         """
-        print(f"### Initiating workflow for participant {participant_id}... ###")
+        print(
+            f"### Initiating workflow for participant {participant_id}... ###"
+        )
         dmriprep = DmriPrepManager(
             self.bids_dir,
             self.destination,
@@ -89,10 +93,16 @@ class DmriManager:
         pd.DataFrame
             A dataframe with subjects' identifiers and whether they have been processed.
         """
-        subjects = sorted([s.name.split("-")[-1] for s in self.bids_dir.glob("sub-*")])
-        manager = pd.DataFrame(index=subjects, columns=["processed", "num_sessions"])
+        subjects = sorted(
+            [s.name.split("-")[-1] for s in self.bids_dir.glob("sub-*")]
+        )
+        manager = pd.DataFrame(
+            index=subjects, columns=["processed", "num_sessions"]
+        )
         for subj in subjects:
-            manager.loc[subj, ["processed", "num_sessions"]] = self.check_subject(subj)
+            manager.loc[
+                subj, ["processed", "num_sessions"]
+            ] = self.check_subject(subj)
         return manager
 
     def run(

@@ -8,11 +8,15 @@ from pathlib import Path
 import pandas as pd
 from nipype.interfaces import fsl
 
-from connecticity.managers.subjects.messages import LOGGER_CONFIG
-from connecticity.managers.subjects.messages import SUMMARY_MESSAGE
-from connecticity.managers.subjects.utils import REPLACEMENT_COLUMNS
-from connecticity.managers.subjects.utils import fix_session
-from connecticity.managers.subjects.utils import transform_row
+from connecticity.managers.subjects.messages import (
+    LOGGER_CONFIG,
+    SUMMARY_MESSAGE,
+)
+from connecticity.managers.subjects.utils import (
+    REPLACEMENT_COLUMNS,
+    fix_session,
+    transform_row,
+)
 
 
 class SubjectsManager:
@@ -62,7 +66,8 @@ class SubjectsManager:
         self.bids_dir = Path(bids_dir) if bids_dir else None
         timestamp = datetime.datetime.today().strftime("%Y-%m-%d-%H:%M:%S")
         logging.basicConfig(
-            filename=self.destination / self.LOGGER_FILE.format(timestamp=timestamp),
+            filename=self.destination
+            / self.LOGGER_FILE.format(timestamp=timestamp),
             **LOGGER_CONFIG,
         )
         if validate_fieldmaps and self.bids_dir.exists():
@@ -128,11 +133,17 @@ class SubjectsManager:
         """
         relevant_subjects = pd.DataFrame()
         for _, row in self.mri_table.iterrows():
-            notes, serial, scan = [row[col] for col in ["notes", "Serial", "SCAN FILE"]]
+            notes, serial, scan = [
+                row[col] for col in ["notes", "Serial", "SCAN FILE"]
+            ]
             for key, value in self.GROUP_IDENTIFIERS.items():
-                if ((key in str(notes)) | (key in str(serial))) & pd.notna(scan):
+                if ((key in str(notes)) | (key in str(serial))) & pd.notna(
+                    scan
+                ):
                     for raw_label, label in self.CONDITION_IDENTIFIERS.items():
-                        if (raw_label in str(notes)) | (raw_label in str(serial)):
+                        if (raw_label in str(notes)) | (
+                            raw_label in str(serial)
+                        ):
                             condition = label
                             break
                         else:
@@ -144,7 +155,9 @@ class SubjectsManager:
                     )
                     transformed_row["group"] = value
                     transformed_row["condition"] = condition
-                    relevant_subjects = relevant_subjects.append(transformed_row)
+                    relevant_subjects = relevant_subjects.append(
+                        transformed_row
+                    )
         return relevant_subjects
 
     def query_available_bids(self, relevant_subjects: pd.DataFrame):
@@ -158,7 +171,9 @@ class SubjectsManager:
                 and id_number not in relevant_subjects["id"].values
             ):
                 for key, value in self.GROUP_IDENTIFIERS.items():
-                    if ((key in str(notes)) | (key in str(serial))) & pd.notna(scan):
+                    if ((key in str(notes)) | (key in str(serial))) & pd.notna(
+                        scan
+                    ):
                         group = value
                         break
                     else:
@@ -179,7 +194,9 @@ class SubjectsManager:
                 relevant_subjects = relevant_subjects.append(transformed_row)
         return relevant_subjects
 
-    def query_database_ids(self, relevant_subjects: pd.DataFrame) -> pd.DataFrame:
+    def query_database_ids(
+        self, relevant_subjects: pd.DataFrame
+    ) -> pd.DataFrame:
         """
         Combines *self.mri_table* and *self.databse_ids* to hold only data for relevant subjects.
 
@@ -220,13 +237,15 @@ class SubjectsManager:
         list[str]
             ID numbers of subjects at *self.bids_dir*
         """
-        database_ids = [i.name.split("-")[-1] for i in self.bids_dir.glob("sub-*")]
+        database_ids = [
+            i.name.split("-")[-1] for i in self.bids_dir.glob("sub-*")
+        ]
         return (
             self.databse_ids.reset_index()
             .set_index("ID")
-            .loc[[i for i in database_ids if i in self.databse_ids["ID"].values]][
-                "ID Number"
-            ]
+            .loc[
+                [i for i in database_ids if i in self.databse_ids["ID"].values]
+            ]["ID Number"]
             .values
         )
 
@@ -319,7 +338,9 @@ class SubjectsManager:
             flt.inputs.cost = "mutualinfo"
             flt.run()
 
-    def update_json(self, fmap: Path, origin_session: str, target_session: Path):
+    def update_json(
+        self, fmap: Path, origin_session: str, target_session: Path
+    ):
         """
         Copies the json related to the fieldmap and edits it according to BIDS specifications.
 
@@ -353,7 +374,9 @@ class SubjectsManager:
         """
         try:
             good_session = [
-                s for s in session.parent.glob("ses-*") if session.name not in s.name
+                s
+                for s in session.parent.glob("ses-*")
+                if session.name not in s.name
             ][0]
             reference = [r for r in session.glob("dwi/*_dwi.nii.gz")][0]
             good_fmaps = [f for f in good_session.glob("fmap/*acq-dwi*")]

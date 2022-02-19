@@ -15,7 +15,7 @@ def read(*names, **kwargs):
 
 
 setup(
-    name="connectome-plasticity-project",
+    name="connecticity",
     version="0.0.0",
     license="MIT",
     description="A package to hold all CPP-related code",

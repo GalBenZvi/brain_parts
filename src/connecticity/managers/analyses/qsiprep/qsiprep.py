@@ -6,21 +6,13 @@ from typing import List
 import pandas as pd
 import tqdm
 
-from connecticity.managers.analyses.analysis import (
-    AnalysisResults,
-)
-from connecticity.managers.analyses.qsiprep.utils import (
-    QsiPrepUtils,
-)
-from connecticity.managers.analyses.utils.parcellations import (
-    PARCELLATIONS,
-)
+from connecticity.managers.analyses.analysis import AnalysisResults
+from connecticity.managers.analyses.qsiprep.utils import QsiPrepUtils
+from connecticity.managers.analyses.utils.parcellations import PARCELLATIONS
 from connecticity.managers.analyses.utils.templates import (
     TENSOR_DERIVED_METRICS,
 )
-from connecticity.managers.analyses.utils.utils import (
-    DEFAULT_DESTINATION,
-)
+from connecticity.managers.analyses.utils.utils import DEFAULT_DESTINATION
 
 
 class QsiprepResults(AnalysisResults):

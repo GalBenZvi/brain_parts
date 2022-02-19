@@ -5,12 +5,8 @@ import nibabel as nib
 import numpy as np
 import pandas as pd
 
-from connecticity.managers.analyses.utils.data_grabber import (
-    DataGrabber,
-)
-from connecticity.managers.analyses.utils.parcellations import (
-    PARCELLATIONS,
-)
+from connecticity.managers.analyses.utils.data_grabber import DataGrabber
+from connecticity.managers.analyses.utils.parcellations import PARCELLATIONS
 from connecticity.managers.analyses.utils.templates import (
     TEMPLATES,
     TENSOR_DERIVED_METRICS,
@@ -18,9 +14,7 @@ from connecticity.managers.analyses.utils.templates import (
     TENSOR_METRICS_OUTPUT_TEMPLATE,
 )
 
-DEFAULT_DESTINATION = (
-    "/home/groot/Projects/PhD/connectomeplasticity/data/analyses/{analysis_type}"
-)
+DEFAULT_DESTINATION = "/home/groot/Projects/PhD/connectomeplasticity/data/analyses/{analysis_type}"
 
 LOGGER_CONFIG = dict(
     filemode="w",
@@ -139,7 +133,9 @@ class AnalysisUtils:
                 reference, parcellation_scheme, cropped_to_gm
             )
 
-        out_file = self.data_grabber.build_derivatives_name(reference, **target_kwargs)
+        out_file = self.data_grabber.build_derivatives_name(
+            reference, **target_kwargs
+        )
         if out_file.exists() and not force:
             session_data = pd.read_csv(out_file, index_col=[0, 1]).squeeze()
 
@@ -178,7 +174,9 @@ class AnalysisUtils:
             [description]
         """
         atlas_kwargs = (
-            self.templates.NATIVE_PARCELLATION_NAMING_KWARGS.value.get(reference_type)
+            self.templates.NATIVE_PARCELLATION_NAMING_KWARGS.value.get(
+                reference_type
+            )
         ).copy()
         if cropped_to_gm:
             atlas_kwargs["label"] = "GM"
@@ -198,10 +196,14 @@ class AnalysisUtils:
         np_operation: str = "nanmean",
     ) -> pd.DataFrame:
         logging.info(f"sub-{participant_label}")
-        multi_index = pd.MultiIndex.from_product([[participant_label], sessions])
+        multi_index = pd.MultiIndex.from_product(
+            [[participant_label], sessions]
+        )
         data = pd.DataFrame(index=multi_index, columns=multi_column)
         for session in sessions:
-            data.loc[(participant_label, session)] = self.parcellate_session_tensors(
+            data.loc[
+                (participant_label, session)
+            ] = self.parcellate_session_tensors(
                 parcellation_scheme,
                 parcels,
                 participant_label,

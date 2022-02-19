@@ -10,8 +10,12 @@ import pandas as pd
 import tqdm
 from nilearn.image import resample_to_img
 from nipype.interfaces.ants import ApplyTransforms
-from nipype.interfaces.freesurfer import (CALabel, MRIsCALabel,
-                                          ParcellationStats, SegStats)
+from nipype.interfaces.freesurfer import (
+    CALabel,
+    MRIsCALabel,
+    ParcellationStats,
+    SegStats,
+)
 
 from connecticity.managers.parcellation import messages
 

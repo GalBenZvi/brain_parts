@@ -8,9 +8,7 @@ warnings.filterwarnings("ignore")
 
 import click
 
-from connecticity.managers.subjects.process_subjects import (
-    SubjectsManager,
-)
+from connecticity.managers.subjects.process_subjects import SubjectsManager
 
 
 @click.command()

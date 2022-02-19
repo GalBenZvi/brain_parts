@@ -5,12 +5,8 @@ from matplotlib.style import available
 from sklearn.metrics import pair_confusion_matrix
 
 from connecticity.managers.analyses.analysis import AnalysisResults
-from connecticity.managers.analyses.utils.data_grabber import (
-    DataGrabber,
-)
-from connecticity.managers.analyses.utils.parcellations import (
-    PARCELLATIONS,
-)
+from connecticity.managers.analyses.utils.data_grabber import DataGrabber
+from connecticity.managers.analyses.utils.parcellations import PARCELLATIONS
 from connecticity.managers.analyses.utils.templates import (
     generate_atlas_file_name,
 )
@@ -43,7 +39,9 @@ class DmriprepResults(AnalysisResults):
             references,
             directory,
             prefix,
-        ) = self.data_grabber.locate_anatomical_references(participant_label, sessions)
+        ) = self.data_grabber.locate_anatomical_references(
+            participant_label, sessions
+        )
         out_file = generate_atlas_file_name(
             references.get("anatomical_reference"),
             parcellation_scheme,
@@ -102,7 +100,9 @@ class DmriprepResults(AnalysisResults):
         parcellations = self.register_parcellation_scheme(
             analysis_type, parcellation_scheme, cropped_to_gm
         )
-        multi_column = pd.MultiIndex.from_product([parcels.index, self.TENSOR_METRICS])
+        multi_column = pd.MultiIndex.from_product(
+            [parcels.index, self.TENSOR_METRICS]
+        )
         if analysis_type == "qsiprep":
             estimate_tensors(parcellations, self.qsiprep_dir, multi_column)
         return parcellate_tensors(

@@ -45,7 +45,9 @@ INPUT_NODE = pe.Node(
 )
 
 #: Building blocks
-DWI2TENSOR_NODE = pe.Node(mrt.FitTensor(**DWI2TENSOR_KWARGS), name="fit_tensor")
+DWI2TENSOR_NODE = pe.Node(
+    mrt.FitTensor(**DWI2TENSOR_KWARGS), name="fit_tensor"
+)
 TENSOR2METRIC_NODE = pe.Node(
     mrt.TensorMetrics(**TENSOR2METRIC_KWARGS), name="tensor2metric"
 )
