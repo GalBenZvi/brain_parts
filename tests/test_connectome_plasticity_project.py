@@ -1,6 +1,6 @@
 from click.testing import CliRunner
 
-from connectome_plasticity_project.cli import main
+from connecticity.cli import main
 
 
 def test_main():

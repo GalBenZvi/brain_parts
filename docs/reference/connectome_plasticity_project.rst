@@ -1,9 +1,9 @@
-connectome_plasticity_project
+connecticity
 =============================
 
 .. testsetup::
 
-    from connectome_plasticity_project import *
+    from connecticity import *
 
-.. automodule:: connectome_plasticity_project
+.. automodule:: connecticity
     :members:

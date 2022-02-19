@@ -6,7 +6,7 @@ source =
 [run]
 branch = true
 source =
-    connectome_plasticity_project
+    connecticity
     tests
 parallel = true
 
