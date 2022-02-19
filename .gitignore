@@ -76,18 +76,6 @@ docs/_build
 # Notebooks
 *.ipynb
 
-# Sensitive data
-data/*
-behavioral/*
-src/connecticity/utils/pylabber.py
-src/connecticity/statistics
-*.csv
-extract_tracts.py
-extract_tracts_old_studies.py
-misc.txt
-prereg
-run_qsiprep.py
-
 # mat and nipype's outputs
 *.nii*
 *.mat
