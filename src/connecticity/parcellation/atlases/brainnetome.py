@@ -45,12 +45,18 @@ CTAB_FILE_NAME: str = "BN_Atlas_246_LUT.txt"
 #: ctab file path.
 CTAB_FILE_PATH: Path = BRAINNETOME_FS_PATH / CTAB_FILE_NAME
 
+#: Parcellation's tabled information
+PARCELS = pd.read_csv(BRAINNETOME_PARCELS_PATH, index_col=0)
+
 #: Brainnetome atlas parcellation dictionary.
 BRAINNETOME: Dict[str, Any] = {
     "path": BRAINNETOME_VOLUME_PATH,
     "image": nib.load(BRAINNETOME_VOLUME_PATH),
-    "parcels": pd.read_csv(BRAINNETOME_PARCELS_PATH, index_col=0),
+    "parcels": PARCELS,
     "gcs": GCS_PATH_TEMPLATE,
     "gcs_subcortex": SUBCORTEX_GCS_PATH,
     "ctab": CTAB_FILE_PATH,
+    "multi_index": pd.MultiIndex.from_frame(
+        PARCELS[["Hemi", "Label"]], names=["Hemi", "Label"]
+    ),
 }
