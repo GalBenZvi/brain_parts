@@ -17,7 +17,7 @@ from nipype.interfaces.freesurfer import (
     SegStats,
 )
 
-from connecticity.managers.parcellation import messages
+from connecticity.parcellation import messages
 
 warnings.filterwarnings("ignore")
 

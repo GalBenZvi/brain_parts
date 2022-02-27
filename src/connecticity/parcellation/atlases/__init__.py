@@ -1,3 +1,1 @@
-from connecticity.managers.parcellation.atlases.atlases import (
-    PARCELLATION_FILES,
-)
+from connecticity.parcellation.atlases.atlases import PARCELLATION_FILES

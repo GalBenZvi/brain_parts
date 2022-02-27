@@ -5,6 +5,7 @@ import datetime
 import logging
 import logging.config
 from pathlib import Path
+from typing import Callable
 
 import nibabel as nib
 import numpy as np
@@ -12,8 +13,8 @@ import pandas as pd
 from nipype.interfaces import fsl
 from nipype.interfaces.ants import ApplyTransforms
 
-from connecticity.managers.parcellation.atlases import PARCELLATION_FILES
-from connecticity.managers.parcellation.utils import LOGGER_CONFIG
+from connecticity.parcellation.atlases import PARCELLATION_FILES
+from connecticity.parcellation.utils import LOGGER_CONFIG
 
 
 class Parcellation:
@@ -133,7 +134,7 @@ class Parcellation:
         parcellation_image: Path,
         metric_image: Path,
         metric_name: str = None,
-        measure: function = np.nanmean,
+        measure: Callable = np.nanmean,
     ) -> pd.Series:
         """
         Parcellate a metric image according to a *parcellation_scheme* in native-space.
@@ -156,7 +157,7 @@ class Parcellation:
         """
         parcellation = self.parcellations.get(parcellation_scheme)
         multi_index = parcellation.get("multi_index")
-        metric_name = metric_name or metric_image.name.split(".")[0]
+        metric_name = metric_name or Path(metric_image).name.split(".")[0]
         parcellation_data, metric_data = [
             nib.load(image).get_fdata()
             for image in [parcellation_image, metric_image]
