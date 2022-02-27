@@ -5,14 +5,16 @@ import datetime
 import logging
 import logging.config
 from pathlib import Path
+from typing import Callable
 
 import nibabel as nib
-from nilearn.image import resample_to_img
+import numpy as np
+import pandas as pd
 from nipype.interfaces import fsl
 from nipype.interfaces.ants import ApplyTransforms
 
-from connecticity.managers.parcellation.atlases import PARCELLATION_FILES
-from connecticity.managers.parcellation.utils import LOGGER_CONFIG
+from connecticity.parcellation.atlases import PARCELLATION_FILES
+from connecticity.parcellation.utils import LOGGER_CONFIG
 
 
 class Parcellation:
@@ -20,6 +22,7 @@ class Parcellation:
     APPLY_TRANSFORM_KWARGS = dict(interpolation="NearestNeighbor")
     THRESHOLD_KWARGS = dict(direction="below")
     MASKING_KWARGS = dict(output_datatype="int")
+
     #: Default destination locations
     LOGGER_FILE = "parcellation_{timestamp}.log"
 
@@ -92,37 +95,6 @@ class Parcellation:
         )
         runner.run()
 
-    def resmaple_to_image(
-        self,
-        parcellation_image: Path,
-        target_image: Path,
-        out_file: Path,
-        interpolation: str = "nearest",
-        **kwargs,
-    ):
-        """
-        A small wrapper around *nilearn.image.resample_to_img*
-
-        Parameters
-        ----------
-        parcellation_image : Path
-            "source_img" to be resampled
-        target_image : Path
-            "target_img" to resample to
-        out_file : Path
-            Output path for resampled image
-        interpolation : str, optional
-            Interpolation to use, since we mostly deal with parcellation
-            images, it's by default "nearest"
-        """
-        resampled = resample_to_img(
-            str(parcellation_image),
-            str(target_image),
-            interpolation=interpolation,
-            **kwargs,
-        )
-        nib.save(resampled, out_file)
-
     def crop_to_probseg(
         self,
         parcellation_scheme: str,
@@ -155,3 +127,45 @@ class Parcellation:
             **self.MASKING_KWARGS,
         )
         masking_runner.run()
+
+    def parcellate_image(
+        self,
+        parcellation_scheme: str,
+        parcellation_image: Path,
+        metric_image: Path,
+        metric_name: str = None,
+        measure: Callable = np.nanmean,
+    ) -> pd.Series:
+        """
+        Parcellate a metric image according to a *parcellation_scheme* in native-space.
+
+        Parameters
+        ----------
+        parcellation_scheme : str
+            A string representing existing key within *self.parcellations*.
+        parcellation_image : Path
+            A parcellation image in participantt's native space
+        metric_image : Path
+            AN image of specific metric to be parcellated
+        metric_name : str, optional
+            Metric's name, by default None
+
+        Returns
+        -------
+        pd.Series
+            A series of the mean value in each *parcellation_scheme*'s parcel.
+        """
+        parcellation = self.parcellations.get(parcellation_scheme)
+        multi_index = parcellation.get("multi_index")
+        metric_name = metric_name or Path(metric_image).name.split(".")[0]
+        parcellation_data, metric_data = [
+            nib.load(image).get_fdata()
+            for image in [parcellation_image, metric_image]
+        ]
+        result = pd.Series(index=multi_index, name=metric_name)
+        for label in result.index.levels[1]:
+            mask = parcellation_data == label
+            result.loc[(slice(None), label)] = measure(
+                metric_data[mask].ravel()
+            )
+        return pd.concat({parcellation_scheme: result}, names=["Atlas"])
