@@ -48,6 +48,9 @@ CTAB_FILE_PATH: Path = BRAINNETOME_FS_PATH / CTAB_FILE_NAME
 #: Parcellation's tabled information
 PARCELS = pd.read_csv(BRAINNETOME_PARCELS_PATH, index_col=0)
 
+#: Label column's name
+INDEX_COLUMNS = ["Label"]
+
 #: Brainnetome atlas parcellation dictionary.
 BRAINNETOME: Dict[str, Any] = {
     "path": BRAINNETOME_VOLUME_PATH,
@@ -56,7 +59,5 @@ BRAINNETOME: Dict[str, Any] = {
     "gcs": GCS_PATH_TEMPLATE,
     "gcs_subcortex": SUBCORTEX_GCS_PATH,
     "ctab": CTAB_FILE_PATH,
-    "multi_index": pd.MultiIndex.from_frame(
-        PARCELS[["Hemi", "Label"]], names=["Hemi", "Label"]
-    ),
+    "index": pd.MultiIndex.from_frame(pd.DataFrame(PARCELS[INDEX_COLUMNS])),
 }
