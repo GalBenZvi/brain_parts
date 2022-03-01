@@ -17,7 +17,7 @@ exclude = '''
 line-length = 79
 
 [tool.coverage.run]
-source = ["connecticity"]
+source = ["brain_parts"]
 branch = true
 omit = ["*tests*", "venv/**", "setup.py"]
 command_line = "-m pytest tests"

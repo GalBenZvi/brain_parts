@@ -17,7 +17,7 @@ from nipype.interfaces.freesurfer import (
     SegStats,
 )
 
-from connecticity.parcellation import messages
+from brain_parts.parcellation import messages
 
 warnings.filterwarnings("ignore")
 

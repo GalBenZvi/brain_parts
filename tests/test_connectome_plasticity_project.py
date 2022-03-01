@@ -1,6 +1,6 @@
 from click.testing import CliRunner
 
-from connecticity.cli import main
+from brain_parts.cli import main
 
 
 def test_main():

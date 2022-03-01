@@ -15,7 +15,7 @@ def read(*names, **kwargs):
 
 
 setup(
-    name="connecticity",
+    name="brain_parts",
     version="0.0.0",
     license="MIT",
     description="A package to hold all CPP-related code",
@@ -28,7 +28,7 @@ setup(
     ),
     author="Gal Ben-Zvi",
     author_email="hershkovitz1@mail.tau.ac.il",
-    url="https://github.com/The-Connectome-Plasticity-Project/connecticity",
+    url="https://github.com/niparser/brain_parts",
     packages=find_packages("src"),
     package_dir={"": "src"},
     py_modules=[splitext(basename(path))[0] for path in glob("src/*.py")],
@@ -80,7 +80,7 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "connectomeplasticity = connecticity.cli:main",
+            "connectomeplasticity = brain_parts.cli:main",
         ]
     },
 )
