@@ -1,9 +1,9 @@
-connecticity
+brain_parts
 =============================
 
 .. testsetup::
 
-    from connecticity import *
+    from brain_parts import *
 
-.. automodule:: connecticity
+.. automodule:: brain_parts
     :members:
