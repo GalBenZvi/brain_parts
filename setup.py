@@ -18,7 +18,7 @@ setup(
     name="brain_parts",
     version="0.0.0",
     license="MIT",
-    description="A package to hold all CPP-related code",
+    description="A package to store neuroimaging parcellation-related code.",
     long_description="%s\n%s"
     % (
         re.compile("^.. start-badges.*^.. end-badges", re.M | re.S).sub(
@@ -27,7 +27,7 @@ setup(
         re.sub(":[a-z]+:`~?(.*?)`", r"``\1``", read("CHANGELOG.rst")),
     ),
     author="Gal Ben-Zvi",
-    author_email="hershkovitz1@mail.tau.ac.il",
+    author_email="benzvigal@gmail.com",
     url="https://github.com/niparser/brain_parts",
     packages=find_packages("src"),
     package_dir={"": "src"},

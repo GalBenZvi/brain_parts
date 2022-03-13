@@ -23,32 +23,17 @@ class Parcellation:
     THRESHOLD_KWARGS = dict(direction="below")
     MASKING_KWARGS = dict(output_datatype="int")
 
-    #: Default destination locations
-    LOGGER_FILE = "parcellation_{timestamp}.log"
-
-    def __init__(
-        self, destination: Path, parcellations: dict = PARCELLATION_FILES
-    ) -> None:
+    def __init__(self, parcellations: dict = PARCELLATION_FILES) -> None:
         """
         Initiate a Parcellation object
 
         Parameters
         ----------
-        base_dir : Path
-            Path to derivatives' base dir (under which there are *dmriprep*,
-            *fmriprep*, etc. directories)
         parcellations : dict
             A dictionary with keys of *image* and *parcels* for each required
             parcellation scheme
         """
-        self.destination = Path(destination)
         self.parcellations = parcellations
-        timestamp = datetime.datetime.today().strftime("%Y-%m-%d-%H:%M:%S")
-        logging.basicConfig(
-            filename=self.destination
-            / self.LOGGER_FILE.format(timestamp=timestamp),
-            **LOGGER_CONFIG,
-        )
 
     def register_parcellation_scheme(
         self,
