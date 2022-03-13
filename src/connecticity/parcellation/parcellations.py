@@ -156,14 +156,16 @@ class Parcellation:
             A series of the mean value in each *parcellation_scheme*'s parcel.
         """
         parcellation = self.parcellations.get(parcellation_scheme)
-        index = parcellation.get("index")
+        index, parcels = [
+            parcellation.get(key) for key in ["index", "parcels"]
+        ]
         metric_name = metric_name or Path(metric_image).name.split(".")[0]
         parcellation_data, metric_data = [
             nib.load(image).get_fdata()
             for image in [parcellation_image, metric_image]
         ]
         result = pd.Series(index=index, name=metric_name)
-        for label in result.index.get_level_values("Label"):
+        for label in parcels["Label"]:
             mask = parcellation_data == label
             result.loc[label] = measure(metric_data[mask].ravel())
         return pd.concat({parcellation_scheme: result}, names=["Atlas"])
