@@ -1,0 +1,1 @@
+from brain_parts.parcellation.atlases.atlases import PARCELLATION_FILES

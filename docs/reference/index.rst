@@ -4,4 +4,4 @@ Reference
 .. toctree::
     :glob:
 
-    connecticity*
+    brain_parts*

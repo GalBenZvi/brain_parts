@@ -13,8 +13,8 @@ import pandas as pd
 from nipype.interfaces import fsl
 from nipype.interfaces.ants import ApplyTransforms
 
-from connecticity.parcellation.atlases import PARCELLATION_FILES
-from connecticity.parcellation.utils import LOGGER_CONFIG
+from brain_parts.parcellation.atlases import PARCELLATION_FILES
+from brain_parts.parcellation.utils import LOGGER_CONFIG
 
 
 class Parcellation:
