@@ -14,7 +14,6 @@ from nipype.interfaces import fsl
 from nipype.interfaces.ants import ApplyTransforms
 
 from brain_parts.parcellation.atlases import PARCELLATION_FILES
-from brain_parts.parcellation.utils import LOGGER_CONFIG
 
 
 class Parcellation:
@@ -149,7 +148,7 @@ class Parcellation:
             nib.load(image).get_fdata()
             for image in [parcellation_image, metric_image]
         ]
-        result = pd.Series(index=index, name=metric_name)
+        result = pd.Series(index=index, name=metric_name, dtype=float)
         for label in parcels["Label"]:
             mask = parcellation_data == label
             result.loc[label] = measure(metric_data[mask].ravel())
