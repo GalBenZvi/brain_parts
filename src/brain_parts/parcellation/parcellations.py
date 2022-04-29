@@ -4,6 +4,7 @@ Definition of the :class:`Parcellation` class.
 import datetime
 import logging
 import logging.config
+import warnings
 from pathlib import Path
 from typing import Callable
 
@@ -151,5 +152,7 @@ class Parcellation:
         result = pd.Series(index=index, name=metric_name, dtype=float)
         for label in parcels["Label"]:
             mask = parcellation_data == label
-            result.loc[label] = measure(metric_data[mask].ravel())
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=RuntimeWarning)
+                result.loc[label] = measure(metric_data[mask].ravel())
         return pd.concat({parcellation_scheme: result}, names=["Atlas"])
