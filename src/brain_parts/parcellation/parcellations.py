@@ -1,9 +1,7 @@
 """
 Definition of the :class:`Parcellation` class.
 """
-import datetime
 import logging
-import logging.config
 import warnings
 from pathlib import Path
 from typing import Callable
@@ -78,6 +76,7 @@ class Parcellation:
             output_image=str(out_whole_brain),
             **self.APPLY_TRANSFORM_KWARGS,
         )
+        logging.info("CMD:\n", runner.cmdline)
         runner.run()
 
     def crop_to_probseg(
