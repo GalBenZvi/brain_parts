@@ -87,7 +87,7 @@ class Parcellation:
             output_image=str(out_whole_brain),
             **self.APPLY_TRANSFORM_KWARGS,
         )
-        self.logger.info("CMD:\n", runner.cmdline)
+        self.logger.info("CMD:\n" + runner.cmdline)
         runner.run()
 
     def crop_to_probseg(
@@ -122,7 +122,7 @@ class Parcellation:
             out_file=out_cropped,
             **self.MASKING_KWARGS,
         )
-        self.logger.info("CMD:\n", masking_runner.cmdline)
+        self.logger.info("CMD:\n" + masking_runner.cmdline)
         masking_runner.run()
 
     def parcellate_image(
