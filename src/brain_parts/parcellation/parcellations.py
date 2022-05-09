@@ -13,6 +13,10 @@ from nipype.interfaces import fsl
 from nipype.interfaces.ants import ApplyTransforms
 
 from brain_parts.parcellation.atlases import PARCELLATION_FILES
+from brain_parts.parcellation.messages import (
+    PARCELLATION_ALREADY_DONE,
+    REGISTRATION_WORKFLOW,
+)
 
 
 class Parcellation:
@@ -21,7 +25,11 @@ class Parcellation:
     THRESHOLD_KWARGS = dict(direction="below")
     MASKING_KWARGS = dict(output_datatype="int")
 
-    def __init__(self, parcellations: dict = PARCELLATION_FILES) -> None:
+    def __init__(
+        self,
+        parcellations: dict = PARCELLATION_FILES,
+        logger: logging.Logger = None,
+    ) -> None:
         """
         Initiate a Parcellation object
 
@@ -32,6 +40,7 @@ class Parcellation:
             parcellation scheme
         """
         self.parcellations = parcellations
+        self.logger = logger or logging.getLogger(__name__)
 
     def register_parcellation_scheme(
         self,
@@ -54,18 +63,20 @@ class Parcellation:
         parcellation_scheme : str
             A string representing existing key within *self.parcellations*.
         """
+
         if out_whole_brain.exists() and not force:
-            logging.info(
-                f"""{parcellation_scheme} atlas was previously registerted to
-                subject {participant_label}'s individual space.\nTo re-run this
-                process, pass force=True as a keyword arguement."""
+            self.logger.info(
+                REGISTRATION_WORKFLOW.format(
+                    parcellation_scheme=parcellation_scheme,
+                    participant_label=participant_label,
+                )
             )
             return
 
         parcellation_image = self.parcellations.get(parcellation_scheme).get(
             "path"
         )
-        logging.info(
+        self.logger.info(
             f"Transforming {parcellation_scheme} atlas from standard to subject {participant_label}'s individual space."  # noqa: E501
         )
 
@@ -76,7 +87,7 @@ class Parcellation:
             output_image=str(out_whole_brain),
             **self.APPLY_TRANSFORM_KWARGS,
         )
-        logging.info("CMD:\n", runner.cmdline)
+        self.logger.info("CMD:\n", runner.cmdline)
         runner.run()
 
     def crop_to_probseg(
@@ -91,11 +102,12 @@ class Parcellation:
     ):
         mask = probseg.with_name(probseg.name.replace("probseg", "mask"))
         if mask.exists() and out_cropped.exists() and not force:
-            logging.info(
-                f"""{parcellation_scheme} atlas was cropped to subject
-                {participant_label}'s gray matter space.\nTo re-run this
-                process, pass force=True as a keyword arguement."""
-            )
+            self.logger.info(
+                PARCELLATION_ALREADY_DONE.format(
+                    parcellation_scheme=parcellation_scheme,
+                    participant_label=participant_label,
+                )
+            )  # noqa: E501           )
             return
         threshold_runner = fsl.Threshold(
             in_file=probseg,
@@ -110,6 +122,7 @@ class Parcellation:
             out_file=out_cropped,
             **self.MASKING_KWARGS,
         )
+        self.logger.info("CMD:\n", masking_runner.cmdline)
         masking_runner.run()
 
     def parcellate_image(
